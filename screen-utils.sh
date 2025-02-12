@@ -25,14 +25,14 @@ function dump_screen_output {
 }
 
 function dump_screens_output {
-    local folder=${1:-/tmp/screen_output.d}
-    if [ -z "$folder" ]
+    if [ -z "$1" ]
     then 
         echo "dumps ALL running screens output to directory"
         echo "usage: dump_screens_output <output folder>"
         return 0
     fi
 
+    local folder=${1:-/tmp/screen_output.d}
     local ident
     for ident in $(screen -ls | grep -P '^\s+\d+' | grep -v 'Dead ' | awk '{ print $1 }')
     do 
