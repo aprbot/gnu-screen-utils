@@ -36,6 +36,10 @@ function _fix_env {
 
 
 function _screen_env_fixer {
+    #
+    # searches for screen name in input screen args
+    # and translates environment for found name
+    #
 
     local found=
     local name=
