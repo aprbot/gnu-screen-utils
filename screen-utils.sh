@@ -8,7 +8,8 @@ function dump_screen_output {
     local name=$1
     if [ -z "$name" ]
     then 
-        echo "usage: dump_screen_output <screen name or id> <file>"
+        echo "dumps screen output to file"
+        echo "usage: dump_screen_output <screen ID/NAME/ID.NAME> <file>"
         return 0
     fi
     local file=${2:-/tmp/screen_output}
@@ -27,6 +28,7 @@ function dump_screens_output {
     local folder=${1:-/tmp/screen_output.d}
     if [ -z "$folder" ]
     then 
+        echo "dumps ALL running screens output to directory"
         echo "usage: dump_screens_output <output folder>"
         return 0
     fi
@@ -54,6 +56,7 @@ function screen-exists {
 function screen-stop {
     if [ -z "$1" ]
     then 
+        echo "stops (kills) a screen"
         echo "usage: screen-stop <screen ID/NAME/ID.NAME>"
         return 0
     fi
@@ -71,6 +74,7 @@ function screen-stop {
 function screen-restart {
     if [ -z "$1" ]
     then 
+        echo "restarts a screen (keeping environment)"
         echo "usage: screen-restart <screen ID/NAME/ID.NAME>"
         return 0
     fi
@@ -91,6 +95,7 @@ function screen-restart {
 function screen-copy {
     if [ -z "$1" ]
     then 
+        echo "starts the same screen"
         echo "usage: screen-copy <screen ID/NAME/ID.NAME>"
         return 0
     fi
@@ -105,6 +110,16 @@ function screen-copy {
         screen -ls
         return 1
     fi
+}
+
+
+function screen-utils-help {
+    for ff in "dump_screen_output" "dump_screens_output" "screen-stop" "screen-restart" "screen-copy"
+    do
+        echo "==== $ff ===="
+        $ff ''
+        echo
+    done
 }
 
 
