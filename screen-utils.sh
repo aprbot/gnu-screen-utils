@@ -63,7 +63,7 @@ function screen-stop {
 
     if screen-exists "$1"
     then
-        /usr/bin/screen screen -X -S "$1" quit
+        /usr/bin/screen -X -S "$1" quit
     else
         echo "No such screen: $1" 1>&2
         /usr/bin/screen -ls
