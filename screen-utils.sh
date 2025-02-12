@@ -71,6 +71,13 @@ function screen-stop {
     fi
 }
 
+function _screen_save {
+    (
+        unset -f screen
+        screen-save $@
+    )
+}
+
 function screen-restart {
     if [ -z "$1" ]
     then 
@@ -82,7 +89,7 @@ function screen-restart {
     if screen-exists "$1"
     then
         local file="$(mktemp)"
-        screen-save "$1" "$file"
+        _screen_save "$1" "$file"
         screen-stop "$1"
         /usr/bin/screen -dmS _screen -c "$file" 
     else
@@ -103,7 +110,7 @@ function screen-copy {
     if screen-exists "$1"
     then
         local file="$(mktemp)"
-        screen-save "$1" "$file"
+        _screen_save "$1" "$file"
         /usr/bin/screen -dmS _screen -c "$file" 
     else
         echo "No such screen: $1" 1>&2
