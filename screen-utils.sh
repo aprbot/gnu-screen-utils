@@ -25,7 +25,7 @@ function dump_screen_output {
 }
 
 function dump_screens_output {
-    if [ -z "$1" ]
+    if [ $# -eq 1 ] && [ -z "$1" ]
     then 
         echo "dumps ALL running screens output to directory"
         echo "usage: dump_screens_output <output folder>"
