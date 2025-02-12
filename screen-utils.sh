@@ -34,7 +34,7 @@ function dump_screens_output {
 
     local folder=${1:-/tmp/screen_output.d}
     local ident
-    for ident in $(screen -ls | grep -P '^\s+\d+' | grep -v 'Dead ' | awk '{ print $1 }')
+    for ident in $(/usr/bin/screen -ls | grep -P '^\s+\d+' | grep -v 'Dead ' | awk '{ print $1 }')
     do 
         number=${ident%.*}
         name=${ident#*.}
