@@ -65,7 +65,7 @@ function screen-stop {
     then
         /usr/bin/screen -X -S "$1" quit
     else
-        echo "No such screen: $1" 1>&2
+        echo "No such unique screen: $1" 1>&2
         /usr/bin/screen -ls
         return 1
     fi
@@ -93,7 +93,7 @@ function screen-restart {
         screen-stop "$1"
         /usr/bin/screen -dmS _screen -c "$file" 
     else
-        echo "No such screen: $1" 1>&2
+        echo "No such unique screen: $1" 1>&2
         /usr/bin/screen -ls
         return 1
     fi
@@ -113,7 +113,7 @@ function screen-copy {
         _screen_save "$1" "$file"
         /usr/bin/screen -dmS _screen -c "$file" 
     else
-        echo "No such screen: $1" 1>&2
+        echo "No such unique screen: $1" 1>&2
         /usr/bin/screen -ls
         return 1
     fi
