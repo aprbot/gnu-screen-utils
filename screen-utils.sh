@@ -84,7 +84,7 @@ function screen-restart {
         local file="$(mktemp)"
         screen-save "$1" "$file"
         screen-stop "$1"
-        /usr/bin/screen -dmS n -c "$file" 
+        /usr/bin/screen -dmS _screen -c "$file" 
     else
         echo "No such screen: $1" 1>&2
         /usr/bin/screen -ls
@@ -104,7 +104,7 @@ function screen-copy {
     then
         local file="$(mktemp)"
         screen-save "$1" "$file"
-        /usr/bin/screen -dmS n -c "$file" 
+        /usr/bin/screen -dmS _screen -c "$file" 
     else
         echo "No such screen: $1" 1>&2
         /usr/bin/screen -ls
