@@ -20,7 +20,7 @@ function dump_screen_output {
         echo "screen $name log is dumped to $file"
     else
         echo -e "ERROR: bad screen name $name\n\nexisting screens:"
-        screen -ls
+        /usr/bin/screen -ls
     fi
 }
 
@@ -66,7 +66,7 @@ function screen-stop {
         /usr/bin/screen screen -X -S "$1" quit
     else
         echo "No such screen: $1" 1>&2
-        screen -ls
+        /usr/bin/screen -ls
         return 1
     fi
 }
@@ -87,7 +87,7 @@ function screen-restart {
         /usr/bin/screen -dmS n -c "$file" 
     else
         echo "No such screen: $1" 1>&2
-        screen -ls
+        /usr/bin/screen -ls
         return 1
     fi
 }
@@ -107,7 +107,7 @@ function screen-copy {
         /usr/bin/screen -dmS n -c "$file" 
     else
         echo "No such screen: $1" 1>&2
-        screen -ls
+        /usr/bin/screen -ls
         return 1
     fi
 }
