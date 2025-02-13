@@ -5,6 +5,10 @@
 
 set -a
 
+function _get_screens {
+    /usr/bin/screen -ls | grep -P '^\s+\d+' | grep -v 'Dead ' | awk '{ print $1 }'
+}
+
 function dump_screen_output {
     local name=$1
     if [ -z "$name" ]
@@ -35,15 +39,32 @@ function dump_screens_output {
 
     local folder=${1:-/tmp/screen_output.d}
     local ident
-    for ident in $(/usr/bin/screen -ls | grep -P '^\s+\d+' | grep -v 'Dead ' | awk '{ print $1 }')
+    for ident in $(_get_screens)
     do 
-        number=${ident%.*}
-        name=${ident#*.}
+        local number=${ident%.*}
+        local name=${ident#*.}
 
         dump_screen_output $ident "$folder/$name.$number.txt"
     done
 }
 
+function screen-ls {
+    if [ $# -ne 0 ]
+    then
+        echo "shows running screens"
+        echo "usage: screen-ls"
+        return 0
+    fi
+
+    for ident in $(_get_screens)
+    do 
+        local number=${ident%.*}
+
+        echo "$ident =>"
+        echo -e "\t$(ps -p $number -o args | tail -1)"
+        echo
+    done
+}
 
 function screen-exists {
     if [ -z "$1" ]
@@ -122,7 +143,7 @@ function screen-copy {
 
 
 function screen-utils-help {
-    for ff in "dump_screen_output" "dump_screens_output" "screen-stop" "screen-restart" "screen-copy"
+    for ff in "dump_screen_output" "dump_screens_output" "screen-ls" "screen-stop" "screen-restart" "screen-copy"
     do
         echo "==== $ff ===="
         $ff ''
