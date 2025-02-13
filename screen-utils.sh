@@ -1,3 +1,4 @@
+#!/bin/bash
 #
 # different screen utils
 #
