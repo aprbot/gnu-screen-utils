@@ -9,6 +9,25 @@ function _get_screens {
     /usr/bin/screen -ls | grep -P '^\s+\d+' | grep -v 'Dead ' | awk '{ print $1 }'
 }
 
+function _get_screen {
+    if [ -z "$1" ]
+    then
+        echo "screen name is not specified!"
+        return 1
+    fi
+    _get_screens | grep "$1"
+}
+
+function _get_screen_name {
+    if [ -z "$1" ]
+    then
+        echo "screen name is not specified!"
+        return 1
+    fi
+    local ident="$(_get_screen "$1")"
+    echo "${ident#*.}"
+}
+
 function dump_screen_output {
     local name=$1
     if [ -z "$name" ]
@@ -75,11 +94,86 @@ function screen-exists {
     /usr/bin/screen -S "$1" -Q select . &> /dev/null
 }
 
-function screen-stop {
+function _screen_save {
+    # screen-save wrapper with case that `screen` may be bash function here
+    (
+        unset -f screen
+        screen-save $@
+    )
+}
+
+function _get_screen_temp_file {
+    if [ -z "$1" ]
+    then
+        echo "screen name is not specified!"
+        return 1
+    fi
+
+    local dir="${HOME}/.screen-utils"
+    mkdir -p "$dir"
+    local name="$(_get_screen "$1")"
+    echo "$(mktemp -p "$dir" "$name-$(date +"%Y-%m-%d-%H-%M-%S")-XXX")"
+}
+
+function screen-dump {
+    if [ -z "$1" ] || [ $# -gt 2 ]
+    then 
+        echo "dumps (saves) screen state to file"
+        echo "usage: screen-dump <screen ID/NAME/ID.NAME> <file to dump, random by default>"
+        return 0
+    fi
+
+    if screen-exists "$1"
+    then
+        local file="$2"
+        local name=''
+        if [ -z "$file" ]
+        then
+            name="$(_get_screen "$1")"
+            file="$(_get_screen_temp_file "$1")"
+        fi
+        _screen_save "$1" "$file"
+        if [ ! -s "$file" ]
+        then
+            echo "something went wrong, screen file is not created"
+            return 1
+        fi
+        export SU_LAST_DUMP="$file"
+        if [ -n "$name" ]
+        then
+            echo "screen $name is dumped to $file"
+            echo "this file path is set to SU_LAST_DUMP environment variable"
+        fi
+    else
+        echo "No such unique screen: $1" 1>&2
+        /usr/bin/screen -ls
+        return 1
+    fi
+}
+
+function screen-load {
+    if [ -z "$1" ] || [ $# -gt 2 ]
+    then 
+        echo "loads a screen from file"
+        echo "usage: screen-load <path> <new screen name>"
+        return 0
+    fi
+
+    if [ ! -s "$1" ]
+    then
+        echo "file $1 not found or empty"
+        return 1
+    fi
+
+    /usr/bin/screen -dmS "${2:-_loaded}" -c "$1" 
+
+}
+
+function screen-kill {
     if [ -z "$1" ]
     then 
-        echo "stops (kills) a screen"
-        echo "usage: screen-stop <screen ID/NAME/ID.NAME>"
+        echo "kills a screen"
+        echo "usage: screen-kill <screen ID/NAME/ID.NAME>"
         return 0
     fi
 
@@ -93,11 +187,28 @@ function screen-stop {
     fi
 }
 
-function _screen_save {
-    (
-        unset -f screen
-        screen-save $@
-    )
+function screen-stop {
+    if [ -z "$1" ] || [ $# -gt 2 ]
+    then 
+        echo "stops (kills) a screen with saving its state to allow recreation"
+        echo "usage: screen-stop <screen ID/NAME/ID.NAME> <file to save state, random by default>"
+        return 0
+    fi
+
+    if screen-exists "$1"
+    then
+        if screen-dump "$1" "$2"
+        then
+            screen-kill "$1"
+        else 
+            echo "cancelling screen killing"
+            return 1
+        fi
+    else
+        echo "No such unique screen: $1" 1>&2
+        /usr/bin/screen -ls
+        return 1
+    fi
 }
 
 function screen-restart {
@@ -110,10 +221,16 @@ function screen-restart {
 
     if screen-exists "$1"
     then
-        local file="$(mktemp)"
-        _screen_save "$1" "$file"
-        screen-stop "$1"
-        /usr/bin/screen -dmS _screen -c "$file" 
+        local file="$(_get_screen_temp_file "$1")"
+        local name="$(_get_screen_name "$1")"
+        if screen-stop "$1" "$file"
+        then
+            screen-load "$file" "$name"
+            rm "$file"
+        else
+            echo "failed to restart a screen"
+            return 1
+        fi
     else
         echo "No such unique screen: $1" 1>&2
         /usr/bin/screen -ls
@@ -131,9 +248,15 @@ function screen-copy {
 
     if screen-exists "$1"
     then
-        local file="$(mktemp)"
-        _screen_save "$1" "$file"
-        /usr/bin/screen -dmS _screen -c "$file" 
+        local file="$(_get_screen_temp_file "$1")"
+        if screen-dump "$1" "$file"
+        then
+            screen-load "$file" "$(_get_screen_name "$1")"
+            rm "$file"
+        else
+            echo "failed to copy a screen"
+            return 1
+        fi
     else
         echo "No such unique screen: $1" 1>&2
         /usr/bin/screen -ls
@@ -143,12 +266,16 @@ function screen-copy {
 
 
 function screen-utils-help {
-    for ff in "dump_screen_output" "dump_screens_output" "screen-ls" "screen-stop" "screen-restart" "screen-copy"
+    for ff in "dump_screen_output" "dump_screens_output" "screen-ls" "screen-dump" "screen-load" "screen-kill" "screen-stop" "screen-restart" "screen-copy"
     do
         echo "==== $ff ===="
         $ff ''
         echo
     done
+
+    echo "==== screen-utils-help ===="
+    echo -e "\tshow this message"
+    echo
 }
 
 
