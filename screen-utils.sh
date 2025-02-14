@@ -214,7 +214,7 @@ function screen-stop {
 function screen-restart {
     if [ -z "$1" ]
     then 
-        echo "restarts a screen (keeping environment)"
+        echo "restarts a screen"
         echo "usage: screen-restart <screen ID/NAME/ID.NAME>"
         return 0
     fi
