@@ -5,6 +5,10 @@
 
 set -a
 
+function err-echo {
+    echo "$@" > /dev/stderr
+}
+
 function _get_screens {
     /usr/bin/screen -ls | grep -P '^\s+\d+' | grep -v 'Dead ' | awk '{ print $1 }'
 }
@@ -12,10 +16,10 @@ function _get_screens {
 function _get_screen {
     if [ -z "$1" ]
     then
-        echo "screen ident is not specified!"
+        err-echo "screen ident is not specified!"
         return 1
     fi
-    _get_screens | grep "$1"
+    _get_screens | grep -- "$1"
 }
 
 function _get_screen_name {
@@ -24,7 +28,7 @@ function _get_screen_name {
     ident="$(_get_screen "$1")"
     if [ $? -ne 0 ]
     then
-        echo "$ident"
+        err-echo "$ident"
         return 1
     fi
     echo "${ident#*.}"
@@ -45,7 +49,7 @@ function dump_screen_output {
     then
         echo "screen $name log is dumped to $file"
     else
-        echo -e "ERROR: bad screen name $name\n\nexisting screens:"
+        err-echo -e "ERROR: bad screen name $name\n\nexisting screens:"
         /usr/bin/screen -ls
     fi
 }
@@ -140,7 +144,7 @@ function _screen_save {
 function _get_screen_temp_file {
     if [ -z "$1" ]
     then
-        echo "screen name is not specified!"
+        err-echo "screen name is not specified!"
         return 1
     fi
 
@@ -196,7 +200,7 @@ function screen-load {
 
     if [ ! -s "$1" ]
     then
-        echo "file $1 not found or empty"
+        err-echo "file $1 not found or empty"
         return 1
     fi
 
@@ -216,7 +220,7 @@ function screen-kill {
     then
         /usr/bin/screen -X -S "$1" quit
     else
-        echo "No such unique screen: $1" 1>&2
+        err-echo "No such unique screen: $1" 1>&2
         /usr/bin/screen -ls
         return 1
     fi
@@ -236,11 +240,11 @@ function screen-stop {
         then
             screen-kill "$1"
         else 
-            echo "cancelling screen killing"
+            err-echo "cancelling screen killing"
             return 1
         fi
     else
-        echo "No such unique screen: $1" 1>&2
+        err-echo "No such unique screen: $1" 1>&2
         /usr/bin/screen -ls
         return 1
     fi
@@ -263,11 +267,11 @@ function screen-restart {
             screen-load "$file" "$name"
             rm "$file"
         else
-            echo "failed to restart a screen"
+            err-echo "failed to restart a screen"
             return 1
         fi
     else
-        echo "No such unique screen: $1" 1>&2
+        err-echo "No such unique screen: $1" 1>&2
         /usr/bin/screen -ls
         return 1
     fi
@@ -289,11 +293,11 @@ function screen-copy {
             screen-load "$file" "$(_get_screen_name "$1")"
             rm "$file"
         else
-            echo "failed to copy a screen"
+            err-echo "failed to copy a screen"
             return 1
         fi
     else
-        echo "No such unique screen: $1" 1>&2
+        err-echo "No such unique screen: $1" 1>&2
         /usr/bin/screen -ls
         return 1
     fi
