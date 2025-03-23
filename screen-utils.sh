@@ -34,6 +34,95 @@ function _get_screen_name {
     echo "${ident#*.}"
 }
 
+function _screen_select_help {
+    echo "shows running screens idents according to filters"
+    echo "usage:"
+    echo -e "\t screen-select -a/--all (to select all screens)"
+    echo -e "\t screen-select <screen ID/NAME/ID.NAME> (to select only 1 screen)"
+    echo -e "\t screen-select -g/--grep <pattern> (to select all screens matches this grep pattern)"
+    echo -e "\t screen-select -r/--regex <pattern> (to select all screens matches this grep -P regex)"
+}
+
+function screen-select {
+    if [ $# -eq 0 ]
+    then
+        _screen_select_help
+        return 0
+    fi
+
+    if [ $# -gt 2 ] || ([ $# -eq 2 ] && [ -z "$2" ])
+    then
+        _screen_select_help
+        return 1
+    fi
+
+    if [ $# -eq 1 ] 
+    then
+        if [ -z "$1" ]
+        then
+            _screen_select_help
+            return 0
+        fi
+
+        if [ "$1" == "-a" ] || [ "$1" == "--all" ]
+        then
+            _get_screens
+            return 0
+        fi
+        
+        local idents
+        idents="$(_get_screen "$1")"
+        if [ $? -ne 0 ]
+        then
+            err-echo "no screens matching ident $1"
+            _screen_select_help
+            return 1
+        fi
+
+        local count="$(echo "$idents" | wc -l)"
+        if [ "$count" == "1" ]
+        then
+            echo "$idents"
+            return 0
+        fi
+
+        err-echo "there are $count screens matching ident $1"
+        echo "$idents"
+        return 1
+    fi
+
+    if [ "$1" == "-g" ] || [ "$1" == "--grep" ]
+    then
+        local idents
+        idents="$(_get_screen "$2")"
+        if [ $? -ne 0 ]
+        then
+            err-echo "no screens matching --grep $2"
+            _screen_select_help
+            return 1
+        fi
+        echo "$idents"
+        return 0
+    fi
+
+    if [ "$1" == "-r" ] || [ "$1" == "--regex" ]
+    then
+        local idents
+        idents="$(_get_screens | grep -P -- "$2")"
+        if [ $? -ne 0 ]
+        then
+            err-echo "no screens matching --regex $2"
+            _screen_select_help
+            return 1
+        fi
+        echo "$idents"
+        return 0
+    fi
+
+    _screen_select_help
+    return 1
+}
+
 function dump_screen_output {
     local name=$1
     if [ -z "$name" ]
@@ -305,7 +394,7 @@ function screen-copy {
 
 
 function screen-utils-help {
-    for ff in "dump_screen_output" "dump_screens_output" "screen-ls" "screen-counts" "screen-dump" "screen-load" "screen-kill" "screen-stop" "screen-restart" "screen-copy"
+    for ff in "screen-select" "dump_screen_output" "dump_screens_output" "screen-ls" "screen-counts" "screen-dump" "screen-load" "screen-kill" "screen-stop" "screen-restart" "screen-copy"
     do
         echo "==== $ff ===="
         $ff ''
