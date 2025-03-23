@@ -12,19 +12,21 @@ function _get_screens {
 function _get_screen {
     if [ -z "$1" ]
     then
-        echo "screen name is not specified!"
+        echo "screen ident is not specified!"
         return 1
     fi
     _get_screens | grep "$1"
 }
 
 function _get_screen_name {
-    if [ -z "$1" ]
+
+    local ident
+    ident="$(_get_screen "$1")"
+    if [ $? -ne 0 ]
     then
-        echo "screen name is not specified!"
+        echo "$ident"
         return 1
     fi
-    local ident="$(_get_screen "$1")"
     echo "${ident#*.}"
 }
 
