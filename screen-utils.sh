@@ -315,7 +315,7 @@ function screen-utils-help {
 set +a
 
 # show help in interactive mode
-if [[ $- == *i* ]] || [ "${RUN_INTERACTIVE_PARTS}" -eq 1 ]
+if [[ $- == *i* ]] || [ "${RUN_INTERACTIVE_PARTS}" == '1' ]
 then
     screen-utils-help
 fi
