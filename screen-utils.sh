@@ -85,6 +85,39 @@ function screen-ls {
     done
 }
 
+function screen-counts {
+    if [ $# -ne 0 ]
+    then
+        echo "shows running screens counts (grouped by name)"
+        echo "usage: screen-counts"
+        return 0
+    fi
+
+    declare -A n2pids
+    declare -A n2count
+    for ident in $(_get_screens)
+    do 
+        local number=${ident%.*}
+        local name=${ident#*.}
+        
+        local count="${n2count["$name"]}"
+        if [ -z "$count" ]
+        then
+            n2count["$name"]=1
+            n2pids["$name"]="$number"
+        else
+            n2count["$name"]=$((count + 1))
+            n2pids["$name"]="${n2pids["$name"]} $number"
+        fi
+    done
+
+    for name in ${!n2count[@]}
+    do
+        echo -e "\t$name=${n2count["$name"]}, ${n2pids["$name"]}"
+    done
+
+}
+
 function screen-exists {
     if [ -z "$1" ]
     then 
@@ -266,7 +299,7 @@ function screen-copy {
 
 
 function screen-utils-help {
-    for ff in "dump_screen_output" "dump_screens_output" "screen-ls" "screen-dump" "screen-load" "screen-kill" "screen-stop" "screen-restart" "screen-copy"
+    for ff in "dump_screen_output" "dump_screens_output" "screen-ls" "screen-counts" "screen-dump" "screen-load" "screen-kill" "screen-stop" "screen-restart" "screen-copy"
     do
         echo "==== $ff ===="
         $ff ''
