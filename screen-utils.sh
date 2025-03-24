@@ -35,12 +35,22 @@ function _get_screen_name {
 }
 
 function _screen_select_help {
-    echo "shows running screens idents according to filters"
+    local cmd="${_screen_select_cmd}"
+    local title="${_screen_select_title}"
+    local action="${_screen_select_action}"
+    if [ -z "$cmd" ]
+    then
+        cmd=screen-select
+        title="shows running screens idents according to filters"
+        action=select
+    fi
+
+    echo "$title"
     echo "usage:"
-    echo -e "\t screen-select -a/--all (to select all screens)"
-    echo -e "\t screen-select <screen ID/NAME/ID.NAME> (to select only 1 screen)"
-    echo -e "\t screen-select -g/--grep <pattern> (to select all screens matches this grep pattern)"
-    echo -e "\t screen-select -r/--regex <pattern> (to select all screens matches this grep -P regex)"
+    echo -e "\t$cmd -a/--all (to $action all screens)"
+    echo -e "\t$cmd <screen ID/NAME/ID.NAME> (to $action only 1 screen matches this ident)"
+    echo -e "\t$cmd -g/--grep <pattern> (to $action all screens matches this grep pattern)"
+    echo -e "\t$cmd -r/--regex <pattern> (to $action all screens matches this grep -P regex)"
 }
 
 function screen-select {
@@ -339,7 +349,7 @@ function screen-stop {
     fi
 }
 
-function screen-restart {
+function screen-restart-old {
     if [ -z "$1" ]
     then 
         echo "restarts a screen"
@@ -364,6 +374,37 @@ function screen-restart {
         /usr/bin/screen -ls
         return 1
     fi
+}
+
+function screen-restart {
+    _screen_select_cmd=screen-restart
+    _screen_select_title="restarts screens"
+    _screen_select_action=restart
+    local out ident
+    out="$(screen-select $@)"
+    local rc=$?
+    unset _screen_select_cmd _screen_select_title _screen_select_action
+    
+    if [ $rc -ne 0 ] || (echo "$out" | grep 'usage:' &> /dev/null)
+    then 
+        echo "$out"
+        return $rc
+    fi
+
+    for ident in $(echo "$out" | xargs)
+    do
+        echo "restarting $ident ..."
+        local file="$(_get_screen_temp_file "$ident")"
+        local name="$(_get_screen_name "$ident")"
+        if screen-stop "$ident" "$file"
+        then
+            screen-load "$file" "$name"
+            rm "$file"
+        else
+            err-echo "failed to restart a screen"
+            return 1
+        fi
+    done
 }
 
 function screen-copy {
