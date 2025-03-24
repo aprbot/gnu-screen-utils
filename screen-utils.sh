@@ -9,6 +9,44 @@ function err-echo {
     echo "$@" > /dev/stderr
 }
 
+function get-child-pids() {
+    local cpid
+    for cpid in $(pgrep -P $1 | xargs);
+    do
+        echo "$cpid"
+        get-child-pids $cpid
+    done
+}
+
+function get-pids-of() {
+    if [ -z "$1" ]
+    then
+        err-echo "no pid specified"
+        return 1
+    fi    
+
+    echo "$1"
+    get-child-pids $1
+}
+
+function htop-proc-tree() {
+    if [ -z "$1" ]
+    then
+        err-echo "no pids specified"
+        return 1
+    fi   
+    htop --tree --pid="$(echo "$1" | xargs | tr ' ' ',')"
+}
+
+function htop-of() {
+    if [ -z "$1" ]
+    then
+        err-echo "no pid specified"
+        return 1
+    fi    
+    htop-proc-tree "$(get-pids-of "$1")"
+}
+
 function _get_screens {
     /usr/bin/screen -ls | grep -P '^\s+\d+' | grep -v 'Dead ' | awk '{ print $1 }'
 }
@@ -131,6 +169,32 @@ function screen-select {
 
     _screen_select_help
     return 1
+}
+
+function get-screen-tree-pids() {
+    if [ $# -ne 0 ]
+    then
+        echo "returns PIDs of all active screens and their child processes (recursively)"
+        echo "usage: get-screen-tree-pids"
+        return 0
+    fi
+
+    local pid p=""
+    for pid in $(screen-select --all | cut -d'.' -f1)
+    do
+        p="$p $(get-pids-of $pid | xargs)"
+    done
+    echo "$p" | xargs
+}
+
+function screen-top() {
+    if [ $# -ne 0 ]
+    then
+        echo "runs htop --tree for all active screens and their child processes (recursively)"
+        echo "usage: screen-htop"
+        return 0
+    fi
+    htop-proc-tree "$(get-screen-tree-pids)"
 }
 
 function dump_screen_output {
@@ -435,7 +499,7 @@ function screen-copy {
 
 
 function screen-utils-help {
-    for ff in "screen-select" "dump_screen_output" "dump_screens_output" "screen-ls" "screen-counts" "screen-dump" "screen-load" "screen-kill" "screen-stop" "screen-restart" "screen-copy"
+    for ff in "screen-select" "get-screen-tree-pids" "screen-top" "dump_screen_output" "dump_screens_output" "screen-ls" "screen-counts" "screen-dump" "screen-load" "screen-kill" "screen-stop" "screen-restart" "screen-copy"
     do
         echo "==== $ff ===="
         $ff ''
