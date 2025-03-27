@@ -51,6 +51,10 @@ function _get_screens {
     /usr/bin/screen -ls | grep -P '^\s+\d+' | grep -v 'Dead ' | awk '{ print $1 }'
 }
 
+function get-screen-count {
+    _get_screens | wc -l
+}
+
 function _get_screen {
     if [ -z "$1" ]
     then
@@ -374,8 +378,19 @@ function screen-load {
         err-echo "file $1 not found or empty"
         return 1
     fi
-
-    /usr/bin/screen -dmS "${2:-_loaded}" -c "$1" 
+    
+    local ct="$(get-screen-count)" ctt
+    /usr/bin/screen -dmS "${2:-_loaded}" -c "$1"
+    # wait until the screen will be really created
+    while :
+    do
+        sleep 0.01
+        ctt="$(get-screen-count)"
+        if (( ctt > ct ))
+        then
+            break
+        fi
+    done
 
 }
 
@@ -463,20 +478,56 @@ function screen-restart {
         return $rc
     fi
 
-    for ident in $(echo "$out" | xargs)
+    # for ident in $(echo "$out" | xargs)
+    # do
+    #     echo "restarting $ident ..."
+    #     local file="$(_get_screen_temp_file "$ident")"
+    #     local name="$(_get_screen_name "$ident")"
+    #     if screen-stop "$ident" "$file"
+    #     then
+    #         screen-load "$file" "$name"
+    #         rm "$file"
+    #     else
+    #         err-echo "failed to restart a screen"
+    #         return 1
+    #     fi
+    # done
+
+    #
+    # stop screens and collect result info
+    #
+    rc=0
+    local files=() names=() index=0
+    for ident in $(echo "$out" | sort -k1 -n -t'.' -r | xargs)
     do
-        echo "restarting $ident ..."
+        echo "stopping $ident ..."
         local file="$(_get_screen_temp_file "$ident")"
         local name="$(_get_screen_name "$ident")"
         if screen-stop "$ident" "$file"
         then
-            screen-load "$file" "$name"
-            rm "$file"
+            files[$index]="$file"
+            names[$index]="$name"
+            (( index += 1))
         else
-            err-echo "failed to restart a screen"
-            return 1
+            err-echo "failed to stop a screen $ident"
+            rc=1
+            break
         fi
     done
+
+    #
+    # up screens from info in reverse order
+    #
+    for index in $(seq $(( index - 1 )) -1 0)
+    do
+        local file="${files[$index]}"
+        local name="${names[$index]}"
+        echo "starting $name ..."
+        screen-load "$file" "$name"
+        rm "$file"
+    done
+
+    return $rc
 }
 
 function screen-copy {
