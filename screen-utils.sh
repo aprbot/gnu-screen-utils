@@ -313,8 +313,16 @@ function _get_screen_temp_file {
 
     local dir="${HOME}/.screen-utils"
     mkdir -p "$dir"
-    local name="$(_get_screen "$1")"
-    echo "$(mktemp -p "$dir" "$name-$(date +"%Y-%m-%d-%H-%M-%S")-XXX")"
+    echo "$(mktemp -p "$dir" "$1-$(date +"%Y-%m-%d-%H-%M-%S")-XXX")"
+}
+
+function get_screen_temp_file {
+    if [ -z "$1" ]
+    then
+        err-echo "screen name is not specified!"
+        return 1
+    fi
+    _get_screen_temp_file "$(_get_screen "$1")"
 }
 
 function screen-dump {
@@ -332,7 +340,7 @@ function screen-dump {
         if [ -z "$file" ]
         then
             name="$(_get_screen "$1")"
-            file="$(_get_screen_temp_file "$1")"
+            file="$(_get_screen_temp_file "$name")"
         fi
         _screen_save "$1" "$file"
         if [ ! -s "$file" ]
