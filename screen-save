@@ -1,6 +1,12 @@
 #!/bin/bash
 # save screen sessions to screenrc compatible files
 # Simon Walz, 2018
+# Demetry Pascal 2025
+#
+# env variables:
+# 	SCREEN_SAVE_DEBUG=0
+# 	SCREEN_SAVE_DIR=~/.screenrc-
+#
 
 # configuration:
 # processes with shall be stated automatically:
@@ -10,9 +16,10 @@ ALLOWED_PROCESSES="^vim |^top|^htop|^watch |^ping "
 DEFAULT_SAVE_DIR="${SCREEN_SAVE_DIR:-"${HOME}/.screenrc-"}"
 
 debug() {
-	# remove "#" to enable debug output:
-	#echo "$@" >&2
-	return
+	if [ "${SCREEN_SAVE_DEBUG:-0}" != "0" ]
+	then
+		echo "$@" >&2
+	fi
 }
 
 
@@ -196,13 +203,27 @@ do
 	screen -S "${SCREEN_ID}" -p "${WINDOW_ID}" -X hardcopy "${HOME}/.screen_hardcopy/${SCREEN_NAME}_${WINDOW_ID}"
 	# screen -h = full history
 
-	# wait till file is writen:
-	sleep 0.01
-	if test \! -f "${HOME}/.screen_hardcopy/${SCREEN_NAME}_${WINDOW_ID}"
-	then
-		echo "Fehler: hardcopy not found." >&2
-		exit 2
-	fi
+	#
+	# wait until file is written
+	#
+	waited=0
+	max_waited=10
+	wait_step=0.01
+	while :
+    do
+        sleep "${wait_step}"
+		if [ -f "${HOME}/.screen_hardcopy/${SCREEN_NAME}_${WINDOW_ID}" ]
+		then
+			break
+		fi
+		if (( waited >= max_waited ))
+		then
+			echo "screen hardcopy is not created in $(( wait_step * waited )) seconds" >&2
+			exit 2
+		fi
+		(( waited += 1))
+
+    done
 
 	# get window contents, alter it, zip it, encode it with base64:
 	WINDOW_CONTENTS="$(awk '/^$/{next}NR>1 {print last} {last=$0}' \
