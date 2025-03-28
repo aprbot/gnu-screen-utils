@@ -280,7 +280,7 @@ function screen-ls {
         local number=${ident%.*}
 
         echo "$ident =>"
-        echo -e "\t$(ps -p $number -o args | tail -1)"
+        echo -e "\t$(ps -p $number --no-headers -o args)"
         echo
     done
 }
