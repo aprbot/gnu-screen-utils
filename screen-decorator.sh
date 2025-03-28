@@ -8,26 +8,51 @@
 
 set -a
 
+function screen-log {
+    if [ -z "$1" ]
+    then
+        echo "saves message to screen log file"
+        echo "usage: screen-log <screen name> <message> <type=out>"
+        return 0
+    fi
+
+    if [ $# -lt 2 ]
+    then
+        echo "requires at least 2 args!" &>/dev/stderr
+        screen-log
+        return 1
+    fi
+
+    local name="$1" message="$2" kind="${3:-out}" day="$(date +"%Y-%m-%d")" time="$(date +"%T.%2N")"
+    local file="${SCREEN_LOG_DIR:-/tmp/screen-log}/${day}_screen.$name.$kind.log"
+    mkdir -p "$(dirname $file)"
+    echo "$day $time [$BASHPID]: $message" >> "$file"
+}
+
 function _fix_env {
     #
     # removes $1 string from env variables
     #   and changes current environment
     #
 
-    local name="$1"
+    local name="$1" prefix="$(echo $1 | tr '-' '_')" msg
 
     [ -n "$name" ] || return 0
 
-    [ -n "SDLOG" ] && echo "fixing env for name: $name" 
+    msg="fixing env for screen $name ($prefix)" 
+    [ -n "SDLOG" ] && echo "$msg"
+    screen-log "$name" "$msg"
 
-    for record in $(env | grep -E "^[^=]*$name.*=")
+    for record in $(env | grep -E "^[^=]*$prefix.*=")
     do
         local n="${record%%=*}"
         local v="${record#*=}"
 
-        local s="${n/$name}"
+        local s="${n/$prefix}"
 
-        [ -n "SDLOG" ] && echo "rename to $s : $n=$v"
+        msg="rename to $s : $n=$v"
+        [ -n "SDLOG" ] && echo "$msg"
+        screen-log "$name" "$msg"
 
         unset $n
         export $s=$v
@@ -41,15 +66,16 @@ function _screen_env_fixer {
     # and translates environment for found name
     #
 
-    local found=
-    local name=
+    local found name msg
 
     for arg in $@
     do 
         if [ -n "$found" ]
         then
             name="$arg"
-            [ -n "SDLOG" ] && echo "found screen name: $name"
+            msg="...on starting screen $name"
+            [ -n "SDLOG" ] && echo "$msg"
+            screen-log "$name" "$msg"
             break
         fi
 
@@ -61,7 +87,7 @@ function _screen_env_fixer {
 
     if [ -n "$name" ]
     then
-        _fix_env "$(echo $name | tr '-' '_')"
+        _fix_env "$name"
     fi
 
 }
