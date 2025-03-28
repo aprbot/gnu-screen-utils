@@ -365,6 +365,31 @@ function screen-dump {
     fi
 }
 
+function _screen_load {
+    local ct="$(get-screen-count)" ctt envfile="$1.env"
+    (   
+        if [ -f "$envfile" ]
+        then
+            set -o allexport
+            source "$envfile"
+            set +o allexport
+        fi
+        /usr/bin/screen -dmS "${2:-_loaded}" -c "$1"
+    )
+    #
+    # wait until the screen will be really created
+    #
+    while :
+    do
+        sleep 0.01
+        ctt="$(get-screen-count)"
+        if (( ctt > ct ))
+        then
+            break
+        fi
+    done
+}
+
 function screen-load {
     if [ -z "$1" ] || [ $# -gt 2 ]
     then 
@@ -379,19 +404,7 @@ function screen-load {
         return 1
     fi
     
-    local ct="$(get-screen-count)" ctt
-    /usr/bin/screen -dmS "${2:-_loaded}" -c "$1"
-    # wait until the screen will be really created
-    while :
-    do
-        sleep 0.01
-        ctt="$(get-screen-count)"
-        if (( ctt > ct ))
-        then
-            break
-        fi
-    done
-
+    _screen_load "$1" "$2"
 }
 
 function screen-kill {
