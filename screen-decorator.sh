@@ -105,6 +105,7 @@ function _screen_decorator {
             screen-log "${_ARG_SCREEN}" "$msg"
             if [ $rc -ne 0 ]
             then
+                screen-log "${_ARG_SCREEN}" "$(ps -p $$ --no-headers -o args)" err
                 screen-log "${_ARG_SCREEN}" "$msg" err
             fi
             /usr/bin/sleep $1
