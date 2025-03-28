@@ -99,7 +99,19 @@ function _screen_decorator {
         fi
 
         _fix_env "${_ARG_SCREEN}"
+        function sleep {
+            local rc=$?
+            local msg="prev command exited with code $rc, sleep for $1"
+            screen-log "${_ARG_SCREEN}" "$msg"
+            if [ $rc -ne 0 ]
+            then
+                screen-log "${_ARG_SCREEN}" "$msg" err
+            fi
+            /usr/bin/sleep $1
+        }
+        export -f sleep
         /usr/bin/screen "$@" 
+        unset -f sleep
     )
 }
 
