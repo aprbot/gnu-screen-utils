@@ -29,9 +29,10 @@ function screen-log {
     echo "$day $time [$BASHPID]: $message" >> "$file"
 }
 
+
 function _fix_env {
     #
-    # removes $1 string from env variables
+    # removes $1 string from env variables (where $1 is supposed to be a screen name)
     #   and changes current environment
     #
 
@@ -60,12 +61,10 @@ function _fix_env {
 }
 
 
-function _screen_env_fixer {
+function _get_screen_name_from_args {
     #
     # searches for screen name in input screen args
-    # and translates environment for found name
     #
-
     local found name msg
 
     for arg in $@
@@ -76,7 +75,9 @@ function _screen_env_fixer {
             msg="...on starting screen $name"
             [ -n "SDLOG" ] && echo "$msg"
             screen-log "$name" "$msg"
-            break
+
+            export _ARG_SCREEN="$name"
+            return 0
         fi
 
         if echo "$arg" | grep -E "\-.*S" &> /dev/null
@@ -84,19 +85,21 @@ function _screen_env_fixer {
             found=1
         fi
     done
-
-    if [ -n "$name" ]
-    then
-        _fix_env "$name"
-    fi
-
 }
+
 
 function _screen_decorator {
     # subshell is required to not impact actual environment 
     (
-        _screen_env_fixer "$@"
-        /usr/bin/screen "$@"        
+        _get_screen_name_from_args "$@"
+        if [ -z "${_ARG_SCREEN}" ]  # if it is not screen creation command -- early exit
+        then
+            /usr/bin/screen "$@" 
+            return $?
+        fi
+
+        _fix_env "${_ARG_SCREEN}"
+        /usr/bin/screen "$@" 
     )
 }
 
