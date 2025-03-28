@@ -47,6 +47,33 @@ function htop-of {
     htop-proc-tree "$(get-pids-of "$1")"
 }
 
+function export-proc-env {
+    if [ -z "$1" ]
+    then
+        echo "exports process environ in format that bash can import"
+        echo "usage: export-proc-env <pid> <file=stdout>"
+        return 0
+    fi
+
+    local file="$2"
+    if [ -z "$2" ]
+    then
+        file=/dev/stdout
+    else
+        mkdir -p "$(dirname $2)"
+    fi
+
+    #
+    #   - functions definitions changes
+    #   - add quotes to x=some;other --> x='some;other'
+    #
+    cat /proc/$1/environ | \
+        tr '\0' '\n' | \
+        sed -E 's@BASH_FUNC_(.*)%%=\(\)@\1()@g' | \
+        sed -E "s@^(\S+)=(((.*[^'](;|\s)).+)+)@\1='\2'@g" \
+            > "$file"
+}
+
 function _get_screens {
     /usr/bin/screen -ls | grep -P '^\s+\d+' | grep -v 'Dead ' | awk '{ print $1 }'
 }
@@ -306,6 +333,8 @@ function _screen_save {
         unset -f screen
         screen-save $@
     )
+
+    export-proc-env "${1%.*}" "$2.env"
 }
 
 function _get_screen_temp_file {
@@ -537,7 +566,7 @@ function screen-restart {
         local name="${names[$index]}"
         echo "starting $name ..."
         screen-load "$file" "$name"
-        rm "$file"
+        rm "$file" "$file.env"
     done
 
     return $rc
@@ -557,7 +586,7 @@ function screen-copy {
         if screen-dump "$1" "$file"
         then
             screen-load "$file" "$(_get_screen_name "$1")"
-            rm "$file"
+            rm "$file" "$file.env"
         else
             err-echo "failed to copy a screen"
             return 1
