@@ -9,7 +9,7 @@ function err-echo {
     echo "$@" > /dev/stderr
 }
 
-function get-child-pids() {
+function get-child-pids {
     local cpid
     for cpid in $(pgrep -P $1 | xargs);
     do
@@ -18,7 +18,7 @@ function get-child-pids() {
     done
 }
 
-function get-pids-of() {
+function get-pids-of {
     if [ -z "$1" ]
     then
         err-echo "no pid specified"
@@ -29,7 +29,7 @@ function get-pids-of() {
     get-child-pids $1
 }
 
-function htop-proc-tree() {
+function htop-proc-tree {
     if [ -z "$1" ]
     then
         err-echo "no pids specified"
@@ -38,7 +38,7 @@ function htop-proc-tree() {
     htop --tree --pid="$(echo "$1" | xargs | tr ' ' ',')"
 }
 
-function htop-of() {
+function htop-of {
     if [ -z "$1" ]
     then
         err-echo "no pid specified"
