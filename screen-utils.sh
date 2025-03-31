@@ -78,6 +78,51 @@ function get-proc-args {
     ps -p $1 --no-headers -o args
 }
 
+function get-screen-cmd {
+    if [ -z "$1" ]
+    then
+        echo "returns screen cmdline with optional screen name change"
+        echo "usage: get-screen-cmd <screen pid> <new name>"
+        echo -e '-twhere new name is the suffix for the current name in case it starts with _'
+        return 0
+    fi
+
+    local arg args=() n="$2" nstatus=0 name
+    for arg in $(
+        cat /proc/$1/cmdline | tr '\0' '\n' | \
+            sed -e 's|SCREEN|screen|g' -e 's|/usr/bin/screen|screen|g' | \
+            sed -E 's@^(.*(\s|;).*)$@"\1"@g'
+    )
+    do
+        if [ -n "$n" ]  # whether to replace name
+        then
+            if [ $nstatus -eq 0 ]  # if name arg not found already
+            then
+                if [[ "$arg" =~ -.*S ]]
+                then
+                    nstatus=1
+                fi
+            elif [ $nstatus -eq 1 ]  # if current arg is name
+            then
+                name="$arg"
+                if [[ $n =~ _.* ]]
+                then
+                    name="$name$n"
+                else
+                    name="$n"
+                fi
+                arg="$name"
+
+                nstatus=2
+            fi
+        fi
+
+        args+=("$arg")
+    done
+    
+    echo "${args[@]}"
+}
+
 function _get_screens {
     /usr/bin/screen -ls | grep -P '^\s+\d+' | grep -v 'Dead ' | awk '{ print $1 }'
 }
@@ -288,7 +333,7 @@ function screen-ls {
         local pid=${ident%.*}
 
         echo "$ident =>"
-        echo -e "\t$(get-proc-args $pid)"
+        echo -e "\t$(get-screen-cmd $pid)"
         echo
     done
 }

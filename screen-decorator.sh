@@ -80,7 +80,7 @@ function _get_screen_name_from_args {
             return 0
         fi
 
-        if echo "$arg" | grep -E "\-.*S" &> /dev/null
+        if [[ "$arg" =~ -.*S ]]
         then
             found=1
         fi
