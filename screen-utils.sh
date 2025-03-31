@@ -515,7 +515,7 @@ function _screen_load {
             echo "$1 does not contain $1/$n, format error"
             return 1
         fi
-    do
+    done
 
     local cwd="$(cat "$1/cwd")" envfile="$1/env"
     (
