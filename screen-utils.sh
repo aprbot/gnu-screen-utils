@@ -366,7 +366,8 @@ function screen-ls {
         local pid=${ident%.*}
 
         echo "$ident =>"
-        echo -e "\t$(get-screen-cmd $pid)"
+        echo -e -n "\t" 
+        echo "$(get-screen-cmd $pid)"
         echo
     done
 }
