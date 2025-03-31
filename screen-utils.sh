@@ -496,7 +496,7 @@ function screen-dump {
 }
 
 function _screen_load {
-    local ct="$(get-screen-count)" ctt 
+    local ct="$(get-screen-count)" ctt n
     # local envfile="$1.env"
     # (   
     #     if [ -f "$envfile" ]
@@ -507,6 +507,15 @@ function _screen_load {
     #     fi
     #     /usr/bin/screen -dmS "${2:-_loaded}" -c "$1"
     # )
+
+    for n in cwd cmd env
+    do
+        if [ ! -f "$1/$n" ]
+        then
+            echo "$1 does not contain $1/$n, format error"
+            return 1
+        fi
+    do
 
     local cwd="$(cat "$1/cwd")" envfile="$1/env"
     (
