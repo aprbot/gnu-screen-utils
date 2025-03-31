@@ -82,17 +82,29 @@ function get-screen-cmd {
     if [ -z "$1" ]
     then
         echo "returns screen cmdline with optional screen name change"
-        echo "usage: get-screen-cmd <screen pid> <new name>"
+        echo "usage: get-screen-cmd <screen pid> <new name> <outfile=not set>"
         echo -e '-twhere new name is the suffix for the current name in case it starts with _'
         return 0
     fi
 
-    local arg args=() n="$2" nstatus=0 name
-    for arg in $(
+    local arg args=() n="$2" nstatus=0 name lines outfile="$3"
+    lines="$(
         cat /proc/$1/cmdline | tr '\0' '\n' | \
-            sed -e 's|SCREEN|screen|g' -e 's|/usr/bin/screen|screen|g' | \
-            sed -E 's@^(.*(\s|;).*)$@"\1"@g'
-    )
+            sed -e 's|SCREEN|screen|g' -e 's|/usr/bin/screen|screen|g'
+    )"
+
+    if [ -n "$outfile" ]
+    then
+        mkdir -p "$(dirname "$outfile")"
+    else
+        lines="$(
+            echo "$lines" | sed -E 's@^(.*(\s|;).*)$@"\1"@g'
+        )"
+    fi
+
+    local IFS=$'\n'
+
+    for arg in $lines
     do
         if [ -n "$n" ]  # whether to replace name
         then
@@ -120,7 +132,16 @@ function get-screen-cmd {
         args+=("$arg")
     done
     
-    echo "${args[@]}"
+    if [ -n "$outfile" ]
+    then
+        rm -rf "$outfile"
+        for arg in "${args[@]}"
+        do
+            echo "$arg" >> "$outfile"
+        done
+    else
+        echo "${args[@]}"
+    fi
 }
 
 function _get_screens {
