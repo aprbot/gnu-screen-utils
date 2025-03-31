@@ -444,7 +444,7 @@ function screen-load {
     _screen_load "$1" "$2"
 }
 
-function screen-kill {
+function screen-kill-old {
     if [ -z "$1" ]
     then 
         echo "kills a screen"
@@ -460,6 +460,39 @@ function screen-kill {
         /usr/bin/screen -ls
         return 1
     fi
+}
+
+function _screen_kill {
+    /usr/bin/screen -X -S "$1" quit
+}
+
+function screen-kill {
+    _screen_select_cmd=screen-kill
+    _screen_select_title="kills screens (with all child processes)"
+    _screen_select_action=kill
+    local out ident
+    out="$(screen-select $@)"
+    local rc=$?
+    unset _screen_select_cmd _screen_select_title _screen_select_action
+    
+    if [ $rc -ne 0 ] || (echo "$out" | grep 'usage:' &> /dev/null)
+    then 
+        echo "$out"
+        return $rc
+    fi
+
+    rc=0
+    for ident in $(echo "$out" | _sort_screens_rev | xargs)
+    do
+        echo "killing $ident ..."
+        if ! _screen_kill "$ident"
+        then
+            echo "errors on killing $ident"
+            rc=1
+        fi
+    done
+
+    return $rc
 }
 
 function screen-stop {
