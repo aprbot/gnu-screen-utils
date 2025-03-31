@@ -1,5 +1,5 @@
 #!/bin/bash
 
-source screen-decorator.sh
+source screen-utils.sh
 
 bash -c "$@"

@@ -5,7 +5,7 @@
 
 source variables.sh
 
-source screen-decorator.sh
+source screen-utils.sh
 
 type screen
 
