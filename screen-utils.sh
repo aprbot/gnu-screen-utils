@@ -82,24 +82,31 @@ function get-screen-cmd {
     if [ -z "$1" ]
     then
         echo "returns screen cmdline with optional screen name change"
-        echo "usage: get-screen-cmd <screen pid> <new name> <outfile=not set>"
+        echo "usage: get-screen-cmd <screen pid or path to cmd file> <new name> <outfile=not set> <exec=0>"
         echo -e '-twhere new name is the suffix for the current name in case it starts with _'
+        echo "Notes:"
+        echo "- performs only 1 action in next priority order: 1) save cmd to file; 2) exec cmd; 3) echo cmd"
         return 0
     fi
 
-    local arg args=() n="$2" nstatus=0 name lines outfile="$3"
-    lines="$(
-        cat /proc/$1/cmdline | tr '\0' '\n' | \
-            sed -e 's|SCREEN|screen|g' -e 's|/usr/bin/screen|screen|g'
-    )"
-
-    if [ -n "$outfile" ]
+    local arg args=() n="$2" nstatus=0 name lines outfile="$3" exc="${4:-0}"
+    if [ -d "/proc/$1" ]  # PID case
     then
-        mkdir -p "$(dirname "$outfile")"
-    else
         lines="$(
-            echo "$lines" | sed -E 's@^(.*(\s|;).*)$@"\1"@g'
+            cat /proc/$1/cmdline | tr '\0' '\n' | \
+                sed -e 's|SCREEN|screen|g' -e 's|/usr/bin/screen|screen|g'
         )"
+
+        if [ -n "$outfile" ]
+        then
+            mkdir -p "$(dirname "$outfile")"
+        else
+            lines="$(
+                echo "$lines" | sed -E 's@^(.*(\s|;).*)$@"\1"@g'
+            )"
+        fi
+    else
+        lines="$(cat "$1")"
     fi
 
     local IFS=$'\n'
@@ -140,7 +147,12 @@ function get-screen-cmd {
             echo "$arg" >> "$outfile"
         done
     else
-        echo "${args[@]}"
+        if [ "$exc" == "1" ]
+        then
+            "${args[@]}"
+        else
+            echo "${args[@]}"
+        fi
     fi
 }
 
@@ -402,16 +414,31 @@ function screen-exists {
 }
 
 function _screen_save {
-    # screen-save wrapper with case that `screen` may be bash function here
-    (
-        unset -f screen
-        screen-save $@
-    )
+    # # screen-save wrapper with case that `screen` may be bash function here
+    # (
+    #     unset -f screen
+    #     screen-save $@
+    # )
 
-    export-proc-env "${1%.*}" "$2.env"
+    local pid="${1%.*}" dir="$2"
+    if [ -z "$dir" ]
+    then
+        echo "no dir specified"
+        return 1
+    fi
+
+    mkdir -p "$dir"
+
+    export-proc-env $pid "$dir/env"
+    get-screen-cmd $pid '' "$dir/cmd"
+    readlink /proc/$pid/cwd > "$dir/cwd"
 }
 
-function _get_screen_temp_file {
+function _screen_save_clear {
+    rm -rf "$1"
+}
+
+function _get_screen_temp_dir {
     if [ -z "$1" ]
     then
         err-echo "screen name is not specified!"
@@ -420,23 +447,23 @@ function _get_screen_temp_file {
 
     local dir="${HOME}/.screen-utils"
     mkdir -p "$dir"
-    echo "$(mktemp -p "$dir" "$1-$(date +"%Y-%m-%d-%H-%M-%S")-XXX")"
+    echo "$(mktemp -p "$dir" -d "$1-$(date +"%Y-%m-%d-%H-%M-%S")-XXX")"
 }
 
-function get_screen_temp_file {
+function get_screen_temp_dir {
     if [ -z "$1" ]
     then
         err-echo "screen name is not specified!"
         return 1
     fi
-    _get_screen_temp_file "$(_get_screen "$1")"
+    _get_screen_temp_dir "$(_get_screen "$1")"
 }
 
 function screen-dump {
     if [ -z "$1" ] || [ $# -gt 2 ]
     then 
         echo "dumps (saves) screen state to file"
-        echo "usage: screen-dump <screen ID/NAME/ID.NAME> <file to dump, random by default>"
+        echo "usage: screen-dump <screen ID/NAME/ID.NAME> <dir to dump, random by default>"
         return 0
     fi
 
@@ -447,7 +474,7 @@ function screen-dump {
         if [ -z "$file" ]
         then
             name="$(_get_screen "$1")"
-            file="$(_get_screen_temp_file "$name")"
+            file="$(_get_screen_temp_dir "$name")"
         fi
         _screen_save "$1" "$file"
         if [ ! -s "$file" ]
@@ -459,7 +486,7 @@ function screen-dump {
         if [ -n "$name" ]
         then
             echo "screen $name is dumped to $file"
-            echo "this file path is set to SU_LAST_DUMP environment variable"
+            echo "this path is set to SU_LAST_DUMP environment variable"
         fi
     else
         echo "No such unique screen: $1" 1>&2
@@ -469,16 +496,27 @@ function screen-dump {
 }
 
 function _screen_load {
-    local ct="$(get-screen-count)" ctt envfile="$1.env"
-    (   
-        if [ -f "$envfile" ]
-        then
-            set -o allexport
-            source "$envfile"
-            set +o allexport
-        fi
-        /usr/bin/screen -dmS "${2:-_loaded}" -c "$1"
+    local ct="$(get-screen-count)" ctt 
+    # local envfile="$1.env"
+    # (   
+    #     if [ -f "$envfile" ]
+    #     then
+    #         set -o allexport
+    #         source "$envfile"
+    #         set +o allexport
+    #     fi
+    #     /usr/bin/screen -dmS "${2:-_loaded}" -c "$1"
+    # )
+
+    local cwd="$(cat "$1/cwd")" envfile="$1/env"
+    (
+        cd "$cwd"
+        set -o allexport
+        source $envfile
+        set +o allexport
+        get-screen-cmd "$1/cmd" "$2" '' 1
     )
+
     #
     # wait until the screen will be really created
     #
@@ -497,7 +535,7 @@ function screen-load {
     if [ -z "$1" ] || [ $# -gt 2 ]
     then 
         echo "loads a screen from file"
-        echo "usage: screen-load <path> <new screen name>"
+        echo "usage: screen-load <path> <new screen name/_suffix>"
         return 0
     fi
 
@@ -550,7 +588,10 @@ function screen-kill {
     rc=0
     for ident in $(echo "$out" | _sort_screens_rev | xargs)
     do
-        echo "killing $ident ..."
+        if [ "${_screen_kill_verbose:-1}" == "1" ]
+        then
+            echo "killing $ident ..."
+        fi
         if ! _screen_kill "$ident"
         then
             echo "errors on killing $ident"
@@ -595,7 +636,7 @@ function screen-restart-old {
 
     if screen-exists "$1"
     then
-        local file="$(_get_screen_temp_file "$1")"
+        local file="$(_get_screen_temp_dir "$1")"
         local name="$(_get_screen_name "$1")"
         if screen-stop "$1" "$file"
         then
@@ -650,8 +691,9 @@ function screen-restart {
     for ident in $(echo "$out" | _sort_screens_rev | xargs)
     do
         echo "stopping $ident ..."
-        local file="$(_get_screen_temp_file "$ident")"
+        local file="$(_get_screen_temp_dir "$ident")"
         local name="$(_get_screen_name "$ident")"
+        _screen_kill_verbose=0
         if screen-stop "$ident" "$file"
         then
             files[$index]="$file"
@@ -662,6 +704,7 @@ function screen-restart {
             rc=1
             break
         fi
+        unset _screen_kill_verbose
     done
 
     #
@@ -673,7 +716,7 @@ function screen-restart {
         local name="${names[$index]}"
         echo "starting $name ..."
         screen-load "$file" "$name"
-        rm "$file" "$file.env"
+        _screen_save_clear "$file"
     done
 
     return $rc
@@ -683,17 +726,17 @@ function screen-copy {
     if [ -z "$1" ]
     then 
         echo "starts the same screen"
-        echo "usage: screen-copy <screen ID/NAME/ID.NAME>"
+        echo "usage: screen-copy <screen ID/NAME/ID.NAME> <new screen name/_suffix>"
         return 0
     fi
 
     if screen-exists "$1"
     then
-        local file="$(_get_screen_temp_file "$1")"
+        local file="$(_get_screen_temp_dir "$1")"
         if screen-dump "$1" "$file"
         then
-            screen-load "$file" "$(_get_screen_name "$1")"
-            rm "$file" "$file.env"
+            screen-load "$file" "$2"
+            _screen_save_clear "$file"
         else
             err-echo "failed to copy a screen"
             return 1
