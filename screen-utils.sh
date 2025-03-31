@@ -117,14 +117,14 @@ function get-screen-cmd {
         then
             if [ $nstatus -eq 0 ]  # if name arg not found already
             then
-                if [[ "$arg" =~ -.*S ]]
+                if [[ "$arg" =~ ^-.*S ]]
                 then
                     nstatus=1
                 fi
             elif [ $nstatus -eq 1 ]  # if current arg is name
             then
                 name="$arg"
-                if [[ $n =~ _.* ]]
+                if [[ $n =~ ^_.* ]]
                 then
                     name="$name$n"
                 else
@@ -735,7 +735,7 @@ function screen-copy {
     if [ -z "$1" ]
     then 
         echo "starts the same screen"
-        echo "usage: screen-copy <screen ID/NAME/ID.NAME> <new screen name/_suffix>"
+        echo "usage: screen-copy <screen ID/NAME/ID.NAME> <new screen name/_suffix, empty means to use actual name>"
         return 0
     fi
 

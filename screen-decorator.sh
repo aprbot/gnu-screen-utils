@@ -98,7 +98,7 @@ function _get_screen_name_from_args {
             return 0
         fi
 
-        if [[ "$arg" =~ -.*S ]]
+        if [[ "$arg" =~ ^-.*S ]]
         then
             found=1
         fi
