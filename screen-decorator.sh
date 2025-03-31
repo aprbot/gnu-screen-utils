@@ -29,6 +29,24 @@ function screen-log {
     echo "$day $time [$BASHPID]: $message" >> "$file"
 }
 
+function screen-err-log {
+    if [ -z "$1" ]
+    then
+        echo "saves message to screen err.log file"
+        echo "usage: screen-err-log <screen name> <message>"
+        return 0
+    fi
+
+    if [ $# -lt 2 ]
+    then
+        echo "requires at least 2 args!" &>/dev/stderr
+        screen-err-log
+        return 1
+    fi
+
+    screen-log "$1" "$2" err
+}
+
 
 function _fix_env {
     #
@@ -105,8 +123,8 @@ function _screen_decorator {
             screen-log "${_ARG_SCREEN}" "$msg"
             if [ $rc -ne 0 ]
             then
-                screen-log "${_ARG_SCREEN}" "$(ps -p $$ --no-headers -o args)" err
-                screen-log "${_ARG_SCREEN}" "$msg" err
+                screen-err-log "${_ARG_SCREEN}" "$(ps -p $$ --no-headers -o args)"
+                screen-err-log "${_ARG_SCREEN}" "$msg"
             fi
             /usr/bin/sleep $1
         }
