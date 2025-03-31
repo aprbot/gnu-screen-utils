@@ -74,6 +74,10 @@ function export-proc-env {
             > "$file"
 }
 
+function get-proc-args {
+    ps -p $1 --no-headers -o args
+}
+
 function _get_screens {
     /usr/bin/screen -ls | grep -P '^\s+\d+' | grep -v 'Dead ' | awk '{ print $1 }'
 }
@@ -277,10 +281,10 @@ function screen-ls {
 
     for ident in $(_get_screens)
     do 
-        local number=${ident%.*}
+        local pid=${ident%.*}
 
         echo "$ident =>"
-        echo -e "\t$(ps -p $number --no-headers -o args)"
+        echo -e "\t$(get-proc-args $pid)"
         echo
     done
 }
