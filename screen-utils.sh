@@ -734,22 +734,27 @@ function screen-restart {
 function screen-copy {
     if [ -z "$1" ]
     then 
-        echo "starts the same screen"
-        echo "usage: screen-copy <screen ID/NAME/ID.NAME> <new screen name/_suffix, empty means to use actual name>"
+        echo "starts the same screen(s)"
+        echo "usage: screen-copy <screen ID/NAME/ID.NAME> <new screen name/_suffix, empty means to use actual name> <copy count=1>"
         return 0
     fi
 
+    local cc="${3:-1}" t
+
     if screen-exists "$1"
     then
-        local file="$(_get_screen_temp_dir "$1")"
-        if screen-dump "$1" "$file"
-        then
-            screen-load "$file" "$2"
-            _screen_save_clear "$file"
-        else
-            err-echo "failed to copy a screen"
-            return 1
-        fi
+        for t in $(seq "$cc")
+        do
+            local file="$(_get_screen_temp_dir "$1")"
+            if screen-dump "$1" "$file"
+            then
+                screen-load "$file" "$2"
+                _screen_save_clear "$file"
+            else
+                err-echo "failed to copy a screen"
+                return 1
+            fi
+        done
     else
         err-echo "No such unique screen: $1" 1>&2
         /usr/bin/screen -ls
