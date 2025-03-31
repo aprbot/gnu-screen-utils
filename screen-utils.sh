@@ -82,6 +82,10 @@ function _get_screens {
     /usr/bin/screen -ls | grep -P '^\s+\d+' | grep -v 'Dead ' | awk '{ print $1 }'
 }
 
+function _sort_screens_rev {
+    sort -k1 -n -t'.' -r < /dev/stdin
+}
+
 function get-screen-count {
     _get_screens | wc -l
 }
@@ -544,7 +548,7 @@ function screen-restart {
     #
     rc=0
     local files=() names=() index=0
-    for ident in $(echo "$out" | sort -k1 -n -t'.' -r | xargs)
+    for ident in $(echo "$out" | _sort_screens_rev | xargs)
     do
         echo "stopping $ident ..."
         local file="$(_get_screen_temp_file "$ident")"
