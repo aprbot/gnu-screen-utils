@@ -109,7 +109,7 @@ function get-screen-cmd {
             )"
         fi
     else
-        lines="$(cat "$1")"
+        lines="$(cat "$1" | tr '\0' '\n')"
     fi
 
     local IFS=$'\n'
@@ -145,10 +145,7 @@ function get-screen-cmd {
     if [ -n "$outfile" ]
     then
         rm -rf "$outfile"
-        for arg in "${args[@]}"
-        do
-            echo "$arg" >> "$outfile"
-        done
+        printf '%s\0' "${args[@]}" > "$outfile"
     else
         if [ "$exc" == "1" ]
         then
