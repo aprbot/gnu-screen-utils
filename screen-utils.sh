@@ -37,8 +37,10 @@ function htop-proc-tree {
     then
         err-echo "no pids specified"
         return 1
-    fi   
-    htop --tree --pid="$(echo "$1" | xargs | tr ' ' ',')"
+    fi
+    local pid="$(echo "$1" | xargs | tr ' ' ',')"
+    shift
+    htop --tree --pid="$pid" "$@"
 }
 
 function htop-of {
@@ -46,8 +48,10 @@ function htop-of {
     then
         err-echo "no pid specified"
         return 1
-    fi    
-    htop-proc-tree "$(get-pids-of "$1")"
+    fi
+    local pids="$(get-pids-of "$1")"
+    shift
+    htop-proc-tree "$pids" "$@"
 }
 
 function export-proc-env {
@@ -305,13 +309,13 @@ function get-screen-tree-pids() {
 }
 
 function screen-top() {
-    if [ $# -ne 0 ]
+    if [ $# -ne 0 ] && [ -z "$1" ]
     then
         echo "runs htop --tree for all active screens and their child processes (recursively)"
-        echo "usage: screen-htop"
+        echo "usage: screen-htop <htop arg1> <htop arg2> ..."
         return 0
     fi
-    htop-proc-tree "$(get-screen-tree-pids)"
+    htop-proc-tree "$(get-screen-tree-pids)" "$@"
 }
 
 function dump_screen_output {
