@@ -8,6 +8,17 @@
 
 set -a
 
+#
+# sets ulimits for the process cuz big ulimits can slow down screen commands
+#
+if [ $(ulimit -Sn) -ge 1000000 ]
+then
+    ulimit -Sn 100000
+    ulimit -Hn 500000
+fi
+
+#region base utils
+
 function err-echo {
     echo "$@" > /dev/stderr
 }
@@ -84,6 +95,8 @@ function export-proc-env {
 function get-proc-args {
     ps -p $1 --no-headers -o args
 }
+
+#endregion
 
 function get-screen-cmd {
     if [ -z "$1" ]
