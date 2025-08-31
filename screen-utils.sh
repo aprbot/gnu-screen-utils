@@ -556,12 +556,23 @@ function _screen_load {
         fi
     done
 
-    local cwd="$(cat "$1/cwd")" envfile="$1/env"
+    local cwd="$(cat "$1/cwd")" envfile="$1/env" curenv
     (
+        if [ "${_screen_load_update_env:-1}" == "1" ]
+        then
+            curenv="$(declare -p -x | sed 's/declare -x/declare -g/g')"
+        fi
+
         cd "$cwd"
         set -o allexport
         source $envfile
         set +o allexport
+
+        if [ -n "$curenv" ]
+        then
+            eval "$curenv"
+        fi
+
         get-screen-cmd "$1/cmd" "$2" '' 1
     )
 
