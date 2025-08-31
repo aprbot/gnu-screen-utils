@@ -431,6 +431,27 @@ function screen-exists {
     /usr/bin/screen -S "$1" -Q select . &> /dev/null
 }
 
+function screen-env-show {
+    if [ -z "$1" ]
+    then
+        echo "shows initial environment of the screen"
+        echo "usage: screen-env-show <screen ID/NAME/ID.NAME>"
+        return 0
+    fi
+
+    if screen-exists "$1"
+    then
+        local name="$(_get_screen "$1")"
+        local pid="${name%.*}"
+        export-proc-env $pid
+    else
+        echo "No such unique screen: $1" 1>&2
+        /usr/bin/screen -ls
+        return 1
+    fi
+
+}
+
 function _screen_save {
     # # screen-save wrapper with case that `screen` may be bash function here
     # (
@@ -782,7 +803,7 @@ function screen-copy {
 
 
 function screen-utils-help {
-    for ff in "screen-select" "get-screen-tree-pids" "screen-top" "dump_screen_output" "dump_screens_output" "screen-ls" "screen-counts" "screen-dump" "screen-load" "screen-kill" "screen-stop" "screen-restart" "screen-copy"
+    for ff in "screen-select" "get-screen-tree-pids" "screen-top" "dump_screen_output" "dump_screens_output" "screen-ls" "screen-env-show" "screen-counts" "screen-dump" "screen-load" "screen-kill" "screen-stop" "screen-restart" "screen-copy"
     do
         echo "==== $ff ===="
         $ff ''
