@@ -956,6 +956,8 @@ function _screen_decorator {
         fi
 
         _fix_env "${_ARG_SCREEN}"
+        export INSIDE_SCREEN="${_ARG_SCREEN}"
+
         function sleep {
             local rc=$?
             local msg="prev command exited with code $rc, sleep for $1"
@@ -979,6 +981,84 @@ then
         _screen_decorator "$@"
     }
     # alias screen=_screen_decorator
+fi
+
+
+#
+# provides an alias to GNU Make command
+#   which logs all commands start, stops
+#
+
+function _make-log {
+    if [ -z "$1" ]
+    then
+        echo "saves message to make log file"
+        echo "usage: _make-log <message> <type=out>"
+        echo "  log file is gotten from MAKE_LOG_OUT_FILE variable which supports date patterns"
+        echo "  if INSIDE_SCREEN variable is set, also logs to this screen log"
+        return 0
+    fi
+
+    if [ $# -lt 1 ] || [ $# -gt 2 ]
+    then
+        echo "requires >=1,<=2 arguments, got $# ($@)!" &>/dev/stderr
+        _make-log
+        return 1
+    fi
+
+    local message="$1" kind="${2:-out}" day="$(date +"%Y-%m-%d")" time="$(date +"%T.%2N")"
+    local file="$(date +"${MAKE_LOG_OUT_FILE:-/tmp/%Y-%m-%d_make.log}")"
+    mkdir -p "$(dirname "$file")"
+    echo "$day $time [$BASHPID]: $message" >> "$file"
+
+    if [ -n "${INSIDE_SCREEN}" ]
+    then
+        screen-log "${INSIDE_SCREEN}" "make: $message" "$kind"
+    fi
+}
+
+
+function _make-err-log {
+    if [ -z "$1" ]
+    then
+        echo "saves message to make err.log file"
+        echo "usage: _make-err-log <message>"
+        echo "  file path is gotten from MAKE_LOG_ERR_FILE/MAKE_LOG_OUT_FILE"
+
+        return 0
+    fi
+
+    (   
+        if [ -n "${MAKE_LOG_ERR_FILE}" ]
+        then
+            export MAKE_LOG_OUT_FILE=MAKE_LOG_ERR_FILE
+        fi
+        _make-log "$1" err
+    )
+}
+
+
+function _make_decorator {
+
+    local rc rnd="$RANDOM"
+
+    _make-log "$PWD *$rnd* executing targets: $*"
+    /usr/bin/make "$@"
+    rc=$?
+    if [ $rc -ne 0 ]
+    then
+        _make-err-log "*$rnd* targets $* execution is done with code: $rc"
+    fi
+    _make-log "*$rnd* exit code: $rc"
+
+    return $rc
+}
+
+if [ -e /usr/bin/make ] 
+then
+    function make {
+        _make_decorator "$@"
+    }
 fi
 
 set +a
