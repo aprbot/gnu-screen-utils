@@ -864,7 +864,7 @@ function screen-log {
 
     local name="$1" message="$2" kind="${3:-out}" day="$(date +"%Y-%m-%d")" time="$(date +"%T.%2N")"
     local file="${SCREEN_LOG_DIR:-/tmp/screen-log}/${day}_screen.$name.$kind.log"
-    mkdir -p "$(dirname $file)"
+    mkdir -p "$(dirname "$file")"
     echo "$day $time [$BASHPID]: $message" >> "$file"
 }
 
