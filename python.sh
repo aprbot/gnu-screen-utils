@@ -21,17 +21,26 @@ if [ $# -eq 1 ] && [ -n "$1" ] && [ -e "$1/bin/python3" ]
 then
     set -e
 
-    pyexe="$(echo $1/bin/python3.*)"
+    pyexes=( $1/bin/python3.* )
+    pyexe="${pyexes[0]}"
+
     if [ "$pyexe" == "$1/bin/python3.*" ]
     then
         echo "No python3.* found in $1/bin"
         exit 1
     fi
 
-    mv "$pyexe" "${pyexe}_"
+    if [ "${#pyexes[@]}" == "1" ] # check if not already replaced
+    then
+        mv "$pyexe" "${pyexe}_"
+        umask 003
+        cp "${BASH_SOURCE[0]}" "$pyexe"
+    elif [ "${#pyexes[@]}" != "2" ] || [ "${pyexes[1]}" != "${pyexe}_" ]
+    then
+        echo "Different python3.* exist but seems like it is not the result of the actual operation: ${pyexes[@]}"
+        exit 3
+    fi
 
-    umask 003
-    cp "${BASH_SOURCE[0]}" "$pyexe"
     if [ ! -x "$pyexe" ]
     then
         echo "wrapper is applied but is not executable, perform manually: chmod +x $pyexe"
@@ -64,6 +73,7 @@ outfile="$(date +"${PYTHON_WRAPPER_OUT_FILE:?output file must be specified}")"
 errfile="$(date +"${PYTHON_WRAPPER_ERR_FILE}")"
 
 function _log {
+    local -
     set -e
 
     if [ -z "$1" ]
