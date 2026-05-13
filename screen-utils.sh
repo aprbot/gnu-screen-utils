@@ -1062,6 +1062,8 @@ function _make_decorator {
 
     _make-log "${MAKE_LOG_PREFIX}$usr $PWD *$rnd* executing targets: $*"
 
+    # export PYTHON_WRAPPER_SUPPLEMENT_OUT_FILE_9="${MAKE_LOG_OUT_FILE}" PYTHON_WRAPPER_SUPPLEMENT_ERR_FILE_9="${MAKE_LOG_ERR_FILE}" 
+
     if [ -z "${MAKE_LOG_OUT_DIR}" ]
     then
         /usr/bin/make "$@"
@@ -1085,6 +1087,8 @@ function _make_decorator {
         rc="${PIPESTATUS[0]}"
         echo -e "\n\n# EXIT CODE: $rc" >> "$rndfile"
     fi
+
+    # unset PYTHON_WRAPPER_SUPPLEMENT_OUT_FILE_9 PYTHON_WRAPPER_SUPPLEMENT_ERR_FILE_9
 
     if [ $rc -ne 0 ]
     then
