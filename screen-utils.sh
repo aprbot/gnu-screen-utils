@@ -1031,7 +1031,7 @@ function _make-err-log {
     (   
         if [ -n "${MAKE_LOG_ERR_FILE}" ]
         then
-            export MAKE_LOG_OUT_FILE=MAKE_LOG_ERR_FILE
+            export MAKE_LOG_OUT_FILE="${MAKE_LOG_ERR_FILE}"
         fi
         _make-log "$1" err
     )
