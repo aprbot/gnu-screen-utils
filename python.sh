@@ -30,6 +30,11 @@ then
 
     umask 003
     cp "${BASH_SOURCE[0]}" "$pyexe"
+    if [ ! -x "$pyexe" ]
+    then
+        echo "wrapper is applied but is not executable, perform manually: chmod +x $pyexe"
+        exit 3
+    fi
 
     echo "wrapper is applied: $pyexe -> ${pyexe}_"
 
