@@ -6,10 +6,10 @@
 # usage:
 #   1) replace existing python with this script using: ./python.sh <path to venv>
 #   2) specify next environment variables:
-#       *
-#       *
-#       *
-#       *
+#       * PYTHON_WRAPPER_OUT_FILE: path to out file (date patterns are allowed)
+#       * PYTHON_WRAPPER_ERR_FILE='': path to err file (date patterns are allowed); if not set, errors will be printed only to PYTHON_WRAPPER_OUT_FILE
+#       * PYTHON_WRAPPER_USE_STDOUT=1: 1 means to print usual messages to /dev/stdout too
+#       * PYTHON_WRAPPER_USE_STDERR=1: 1 means to print error messages to /dev/stderr; otherwise will not be printed
 #       *
 #       *
 #   3) execute venv/bin/python as always
@@ -58,9 +58,82 @@ fi
 
 #endregion
 
+set -e
 
+outfile="$(date +"${PYTHON_WRAPPER_OUT_FILE:?output file must be specified}")"
+errfile="$(date +"${PYTHON_WRAPPER_ERR_FILE}")"
 
+function _log {
+    set -e
+
+    if [ -z "$1" ]
+    then
+        echo "saves message to log file and optionally prints to out/err descriptor"
+        echo "usage: _log <message> <type=out>"
+        return 0
+    fi
+
+    if [ $# -lt 1 ] || [ $# -gt 2 ]
+    then
+        echo "requires >=1,<=2 arguments, got $# ($@)!" &>/dev/stderr
+        _log
+        return 1
+    fi
+
+    local message="$1" kind="${2:-out}" day="$(date +"%Y-%m-%d")" time="$(date +"%T.%2N")"
+    local record="$day $time [$BASHPID]: $message"
+
+    if [ "${PYTHON_WRAPPER_USE_STDOUT:-1}" == "1" ]
+    then
+        echo "$record"
+    fi
+
+    local files=( "$outfile" ) file
+    if [ "$kind" == "err" ] # in err print message to both err and out 
+    then
+        if [ -n "$errfile" ]
+        then 
+            files+=( "$errfile" )
+        fi
+
+        if [ "${PYTHON_WRAPPER_USE_STDERR:-1}" == "1" ]
+        then
+            echo "$record" > /dev/stderr
+        fi
+    fi
+
+    for file in "${files[@]}"
+    do
+        mkdir -p "$(dirname "$file")"
+        echo "$record" >> "$file"
+    done
+}
+
+function _err-log {
+    if [ -z "$1" ]
+    then
+        echo "saves message to make err.log file"
+        echo "usage: _err-log <message>"
+        return 0
+    fi
+
+    _log "$1" err
+}
+
+set +e
+
+_log "executing: $0 $*"
 
 "$pyexe" "$@"
+rc=$?
+m="exited with code: $rc"
 
+if [ $rc -ne 0 ]
+then
+    _err-log "$m"
+else
+    _log "$m"
+fi
+
+exit $rc
 
