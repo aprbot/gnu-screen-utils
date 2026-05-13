@@ -4,7 +4,7 @@
 # wrapper on some venv/bin/python executable which logs command start and exit
 # 
 # usage:
-#   1) replace existing python with this script using: bash python.sh <path to venv>
+#   1) replace existing python with this script using: ./python.sh <path to venv>
 #   2) specify next environment variables:
 #       *
 #       *
@@ -40,7 +40,7 @@ pyexe="$(readlink -f "$0")_"
 if [ ! -e "$pyexe" ]
 then
     echo "wrapper is not applied"
-    echo "firstly u need to perform something like: bash python.sh <path to venv>"
+    echo "firstly u need to perform something like: ./python.sh <path to venv>"
     echo "executed: $0 $*"
     exit 2
 fi
