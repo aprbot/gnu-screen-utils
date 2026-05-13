@@ -1071,8 +1071,10 @@ function _make_decorator {
             return 1
         fi
 
-        /usr/bin/make "$@" |& tee "$rndfile"
+        echo -e "###########\n#\n# targets: $*\n#\n###########\n\n" > "$rndfile"
+        /usr/bin/make "$@" |& tee -a "$rndfile"
         rc="${PIPESTATUS[0]}"
+        echo -e "\n\n# EXIT CODE: $rc" >> "$rndfile"
     fi
 
     if [ $rc -ne 0 ]
