@@ -1003,7 +1003,10 @@ function _make-log {
     then
         echo "saves message to make log file"
         echo "usage: _make-log <message> <type=out>"
-        echo "  log file is gotten from MAKE_LOG_OUT_FILE variable which supports date patterns"
+        echo "  log file is gotten from MAKE_LOG_<kind>_FILE variable which supports date patterns"
+        echo "      also supplement files MAKE_LOG_SUPPLEMENT_<kind>_FILE_<i> are supported"
+        echo "  where kind=OUT/ERR i={1..5}"
+        echo 
         echo "  if INSIDE_SCREEN variable is set, also logs to this screen log"
         return 0
     fi
@@ -1016,9 +1019,23 @@ function _make-log {
     fi
 
     local message="$1" kind="${2:-out}" day="$(date +"%Y-%m-%d")" time="$(date +"%T.%2N")"
-    local file="$(date +"${MAKE_LOG_OUT_FILE:-/tmp/%Y-%m-%d_make.log}")"
-    mkdir -p "$(dirname "$file")"
-    echo "$day $time [$BASHPID]: $message" >> "$file"
+    local KIND="${kind^^}" i
+    local name="MAKE_LOG_${KIND}_FILE"
+    local files=( "$( date +"${!name}" )" ) file
+    for i in {1..5}
+    do
+        name="MAKE_LOG_SUPPLEMENT_${KIND}_FILE_$i"
+        files+=( "$( date +"${!name}" )" )
+    done
+
+    for file in "${files[@]}"
+    do
+        if [ -n "$file" ]
+        then
+            mkdir -p "$(dirname "$file")"
+            echo "$day $time [$BASHPID]: $message" >> "$file"
+        fi
+    done
 
     if [ -n "${INSIDE_SCREEN}" ]
     then
@@ -1040,7 +1057,7 @@ function _make-err-log {
     (   
         if [ -n "${MAKE_LOG_ERR_FILE}" ]
         then
-            export MAKE_LOG_OUT_FILE="${MAKE_LOG_ERR_FILE}"
+            export MAKE_LOG_ERR_FILE="${MAKE_LOG_OUT_FILE}"
         fi
         _make-log "$1" err
     )
