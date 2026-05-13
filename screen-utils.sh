@@ -960,7 +960,7 @@ function _screen_decorator {
 
         function sleep {
             local rc=$?
-            local msg="prev command exited with code $rc, sleep for $1"
+            local msg="sleep: prev command exited with code $rc, sleep for $1"
             screen-log "${_ARG_SCREEN}" "$msg"
             if [ $rc -ne 0 ]
             then
