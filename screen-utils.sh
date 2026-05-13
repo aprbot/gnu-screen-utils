@@ -1040,7 +1040,7 @@ function _make-err-log {
 
 function _make_decorator {
 
-    local rc rnd="$RANDOM" usr
+    local rc rnd="$RANDOM" usr rndfile
 
     if [ "${MAKE_LOG_USER}" == "1" ]
     then
@@ -1052,8 +1052,29 @@ function _make_decorator {
     fi
 
     _make-log "${MAKE_LOG_PREFIX}$usr $PWD *$rnd* executing targets: $*"
-    /usr/bin/make "$@"
-    rc=$?
+
+    if [ -z "${MAKE_LOG_OUT_DIR}" ]
+    then
+        /usr/bin/make "$@"
+        rc=$?
+    else
+        if ! mkdir -p "${MAKE_LOG_OUT_DIR}"
+        then
+            err-echo "cannot create MAKE_LOG_OUT_DIR: ${MAKE_LOG_OUT_DIR}" 
+            return 1
+        fi
+
+        rndfile="${MAKE_LOG_OUT_DIR}/$rnd"
+        if ! touch "$rndfile"
+        then
+            err-echo "cannot touch a file inside MAKE_LOG_OUT_DIR: ${rndfile}" 
+            return 1
+        fi
+
+        /usr/bin/make "$@" |& tee "$rndfile"
+        rc="${PIPESTATUS[0]}"
+    fi
+
     if [ $rc -ne 0 ]
     then
         _make-err-log "*$rnd* targets ( $* ) execution is done with code: $rc"
