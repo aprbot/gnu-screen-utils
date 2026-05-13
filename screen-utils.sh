@@ -1042,7 +1042,7 @@ function _make_decorator {
 
     local rc rnd="$RANDOM"
 
-    _make-log "$PWD *$rnd* executing targets: $*"
+    _make-log "${MAKE_LOG_PREFIX}$USER: $PWD *$rnd* executing targets: $*"
     /usr/bin/make "$@"
     rc=$?
     if [ $rc -ne 0 ]
