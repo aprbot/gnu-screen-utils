@@ -72,6 +72,16 @@ set -e
 outfile="$(date +"${PYTHON_WRAPPER_OUT_FILE:?output file must be specified}")"
 errfile="$(date +"${PYTHON_WRAPPER_ERR_FILE}")"
 
+outfiles=( "$outfile" )
+errfiles=( "$errfile" )
+for i in {1..9}
+do
+    name="PYTHON_WRAPPER_SUPPLEMENT_OUT_FILE_$i"
+    outfiles+=( "$(date +"${!name}")" )
+    name="PYTHON_WRAPPER_SUPPLEMENT_ERR_FILE_$i"
+    errfiles+=( "$(date +"${!name}")" )
+done
+
 function _log {
     local -
     set -e
@@ -93,13 +103,11 @@ function _log {
     local message="$1" kind="${2:-out}" day="$(date +"%Y-%m-%d")" time="$(date +"%T.%2N")"
     local record="$day $time [$BASHPID]: $message"
 
-    local files=( "$outfile" ) file
+    local files=( ) file
+    files+=("${outfiles[@]}")
     if [ "$kind" == "err" ] # in err print message to both err and out 
     then
-        if [ -n "$errfile" ]
-        then 
-            files+=( "$errfile" )
-        fi
+        files+=("${errfiles[@]}")
 
         if [ "${PYTHON_WRAPPER_USE_STDERR:-1}" == "1" ]
         then
@@ -112,8 +120,11 @@ function _log {
 
     for file in "${files[@]}"
     do
-        mkdir -p "$(dirname "$file")"
-        echo "$record" >> "$file"
+        if [ -n "$file" ]
+        then
+            mkdir -p "$(dirname "$file")"
+            echo "$record" >> "$file"
+        fi
     done
 }
 
