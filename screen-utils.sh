@@ -1040,9 +1040,18 @@ function _make-err-log {
 
 function _make_decorator {
 
-    local rc rnd="$RANDOM"
+    local rc rnd="$RANDOM" usr
 
-    _make-log "${MAKE_LOG_PREFIX}$USER: $PWD *$rnd* executing targets: $*"
+    if [ "${MAKE_LOG_USER}" == "1" ]
+    then
+        usr="$USER"
+        if [ -z "$usr" ]
+        then
+            usr="$(id -un)"
+        fi
+    fi
+
+    _make-log "${MAKE_LOG_PREFIX}$usr $PWD *$rnd* executing targets: $*"
     /usr/bin/make "$@"
     rc=$?
     if [ $rc -ne 0 ]
