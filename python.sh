@@ -77,9 +77,17 @@ errfiles=( "$errfile" )
 for i in {1..9}
 do
     name="PYTHON_WRAPPER_SUPPLEMENT_OUT_FILE_$i"
-    outfiles+=( "$(date +"${!name}")" )
+    value="$(date +"${!name}")"
+    if [ -n "$value" ]
+    then
+        outfiles+=( "$value" )
+    fi
     name="PYTHON_WRAPPER_SUPPLEMENT_ERR_FILE_$i"
-    errfiles+=( "$(date +"${!name}")" )
+    value="$(date +"${!name}")"
+    if [ -n "$value" ]
+    then
+        errfiles+=( "$value" )
+    fi
 done
 
 function _log {
