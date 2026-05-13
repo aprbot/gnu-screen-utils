@@ -15,6 +15,8 @@
 #   3) execute venv/bin/python as always
 #
 
+#region replace actual python3.* with this script
+
 if [ $# -eq 1 ] && [ -n "$1" ] && [ -e "$1/bin/python3" ]
 then
     set -e
@@ -41,6 +43,10 @@ then
     exit 0
 fi
 
+#endregion
+
+#region check whether replacement is already performed
+
 pyexe="$(readlink -f "$0")_"
 if [ ! -e "$pyexe" ]
 then
@@ -49,6 +55,10 @@ then
     echo "executed: $0 $*"
     exit 2
 fi
+
+#endregion
+
+
 
 
 "$pyexe" "$@"
