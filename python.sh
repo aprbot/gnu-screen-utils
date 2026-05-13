@@ -93,11 +93,6 @@ function _log {
     local message="$1" kind="${2:-out}" day="$(date +"%Y-%m-%d")" time="$(date +"%T.%2N")"
     local record="$day $time [$BASHPID]: $message"
 
-    if [ "${PYTHON_WRAPPER_USE_STDOUT:-1}" == "1" ]
-    then
-        echo "$record"
-    fi
-
     local files=( "$outfile" ) file
     if [ "$kind" == "err" ] # in err print message to both err and out 
     then
@@ -110,6 +105,9 @@ function _log {
         then
             echo "$record" > /dev/stderr
         fi
+    elif [ "${PYTHON_WRAPPER_USE_STDOUT:-1}" == "1" ]
+    then
+        echo "$record"      
     fi
 
     for file in "${files[@]}"
