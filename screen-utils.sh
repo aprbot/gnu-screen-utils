@@ -1056,7 +1056,7 @@ function _make_decorator {
     rc=$?
     if [ $rc -ne 0 ]
     then
-        _make-err-log "*$rnd* targets $* execution is done with code: $rc"
+        _make-err-log "*$rnd* targets ( $* ) execution is done with code: $rc"
     fi
     _make-log "*$rnd* exit code: $rc"
 
