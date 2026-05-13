@@ -988,6 +988,15 @@ fi
 # provides an alias to GNU Make command
 #   which logs all commands start, stops
 #
+# environment variables:
+#   * INSIDE_SCREEN: if set (for screen wrapper is set automatically) then will duplicate its logs to appropriate screen log
+#   * MAKE_LOG_OUT_FILE: file to log all actions
+#   * MAKE_LOG_ERR_FILE: file to log only error actions, equals to MAKE_LOG_OUT_FILE by default
+#   * MAKE_LOG_USER: whether to log user id
+#   * MAKE_LOG_PREFIX: supplement prefix to log record
+#   * MAKE_LOG_OUT_DIR: supplement directory to log make command output
+#
+#
 
 function _make-log {
     if [ -z "$1" ]
