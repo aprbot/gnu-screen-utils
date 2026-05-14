@@ -847,6 +847,32 @@ fi
 
 set -a
 
+function get-screen-log-file {
+    if [ -z "$1" ]
+    then
+        echo "returns screen log file date pattern for the specified screen and type"
+        echo "usage: get-screen-log-file <screen name> <type=out>"
+        return 0
+    fi
+
+    if [ $# -gt 2 ]
+    then
+        err-echo "requires not more than 2 args: $*"
+        get-screen-log-file
+        return 1
+    fi
+
+    local name="$1" kind="${2:-out}"
+    if [ "$kind" != "out" ] && [ "$kind" != "err" ]
+    then
+        err-echo "unknown log type (out/err): $kind"
+        get-screen-log-file
+        return 1
+    fi
+
+    echo "${SCREEN_LOG_DIR:-/tmp/screen-log}/$%Y-%m-%d_screen.$name.$kind.log"
+}
+
 function screen-log {
     if [ -z "$1" ]
     then
@@ -863,7 +889,7 @@ function screen-log {
     fi
 
     local name="$1" message="$2" kind="${3:-out}" day="$(date +"%Y-%m-%d")" time="$(date +"%T.%2N")"
-    local file="${SCREEN_LOG_DIR:-/tmp/screen-log}/${day}_screen.$name.$kind.log"
+    local file="$(get-screen-log-file "$name" "$kind")"
     mkdir -p "$(dirname "$file")"
     echo "$day $time [$BASHPID]: $message" >> "$file"
 }
@@ -956,7 +982,9 @@ function _screen_decorator {
         fi
 
         _fix_env "${_ARG_SCREEN}"
-        export INSIDE_SCREEN="${_ARG_SCREEN}"
+
+        export MAKE_LOG_SUPPLEMENT_OUT_FILE_5="$(get-screen-log-file "${_ARG_SCREEN}" out)"
+        export MAKE_LOG_SUPPLEMENT_ERR_FILE_5="$(get-screen-log-file "${_ARG_SCREEN}" err)"
 
         function sleep {
             local rc=$?
@@ -989,7 +1017,6 @@ fi
 #   which logs all commands start, stops
 #
 # environment variables:
-#   * INSIDE_SCREEN: if set (for screen wrapper is set automatically) then will duplicate its logs to appropriate screen log
 #   * MAKE_LOG_OUT_FILE: file to log all actions
 #   * MAKE_LOG_ERR_FILE: file to log only error actions, equals to MAKE_LOG_OUT_FILE by default
 #   * MAKE_LOG_USER: whether to log user id
@@ -1006,8 +1033,6 @@ function _make-log {
         echo "  log file is gotten from MAKE_LOG_<kind>_FILE variable which supports date patterns"
         echo "      also supplement files MAKE_LOG_SUPPLEMENT_<kind>_FILE_<i> are supported"
         echo "  where kind=OUT/ERR i={1..5}"
-        echo 
-        echo "  if INSIDE_SCREEN variable is set, also logs to this screen log"
         return 0
     fi
 
@@ -1036,11 +1061,6 @@ function _make-log {
             echo "$day $time [$BASHPID]: $message" >> "$file"
         fi
     done
-
-    if [ -n "${INSIDE_SCREEN}" ]
-    then
-        screen-log "${INSIDE_SCREEN}" "make: $message" "$kind"
-    fi
 }
 
 
@@ -1077,7 +1097,7 @@ function _make_decorator {
         fi
     fi
 
-    _make-log "${MAKE_LOG_PREFIX}$usr $PWD *$rnd* executing targets: $*"
+    _make-log "${MAKE_LOG_PREFIX}$usr $PWD *$rnd* executing make targets: $*"
 
     # export PYTHON_WRAPPER_SUPPLEMENT_OUT_FILE_9="${MAKE_LOG_OUT_FILE}" PYTHON_WRAPPER_SUPPLEMENT_ERR_FILE_9="${MAKE_LOG_ERR_FILE}" 
 
