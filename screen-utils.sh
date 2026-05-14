@@ -983,8 +983,13 @@ function _screen_decorator {
 
         _fix_env "${_ARG_SCREEN}"
 
-        export MAKE_LOG_SUPPLEMENT_OUT_FILE_5="$(get-screen-log-file "${_ARG_SCREEN}" out)"
-        export MAKE_LOG_SUPPLEMENT_ERR_FILE_5="$(get-screen-log-file "${_ARG_SCREEN}" err)"
+        errf="$(get-screen-log-file "${_ARG_SCREEN}" err)"
+        outf="$(get-screen-log-file "${_ARG_SCREEN}" out)"
+
+        export MAKE_LOG_SUPPLEMENT_OUT_FILE_5="$outf"
+        export MAKE_LOG_SUPPLEMENT_ERR_FILE_5="$errf"
+        export PYTHON_WRAPPER_SUPPLEMENT_OUT_FILE_5="$outf"
+        export PYTHON_WRAPPER_SUPPLEMENT_ERR_FILE_5="$errf"
 
         function sleep {
             local rc=$?
