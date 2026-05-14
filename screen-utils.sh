@@ -870,7 +870,7 @@ function get-screen-log-file {
         return 1
     fi
 
-    echo "${SCREEN_LOG_DIR:-/tmp/screen-log}/$%Y-%m-%d_screen.$name.$kind.log"
+    echo "${SCREEN_LOG_DIR:-/tmp/screen-log}/%Y-%m-%d_screen.$name.$kind.log"
 }
 
 function screen-log {
