@@ -956,7 +956,7 @@ function _get_screen_name_from_args {
         if [ -n "$found" ]
         then
             name="$arg"
-            msg="...on starting screen $name"
+            msg="...on starting screen $name by: screen $*"
             [ -n "SDLOG" ] && echo "$msg"
             screen-log "$name" "$msg"
 
