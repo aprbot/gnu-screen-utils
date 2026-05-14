@@ -33,13 +33,17 @@ then
     if [ "${#pyexes[@]}" == "1" ] # check if not already replaced
     then
         mv "$pyexe" "${pyexe}_"
-        umask 003
-        cp "${BASH_SOURCE[0]}" "$pyexe"
     elif [ "${#pyexes[@]}" != "2" ] || [ "${pyexes[1]}" != "${pyexe}_" ]
     then
         echo "Different python3.* exist but seems like it is not the result of the actual operation: ${pyexes[@]}"
         exit 3
     fi
+
+    #
+    # copy even when it already exists (update) 
+    #
+    umask 003
+    cp "${BASH_SOURCE[0]}" "$pyexe"    
 
     if [ ! -x "$pyexe" ]
     then
