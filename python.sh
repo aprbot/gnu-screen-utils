@@ -30,6 +30,9 @@ then
         exit 1
     fi
 
+    src="${BASH_SOURCE[0]}"
+
+    copy=1
     if [ "${#pyexes[@]}" == "1" ] # check if not already replaced
     then
         mv "$pyexe" "${pyexe}_"
@@ -37,13 +40,20 @@ then
     then
         echo "Different python3.* exist but seems like it is not the result of the actual operation: ${pyexes[@]}"
         exit 3
+    else
+        copy=
+        if [ "$(cat "$src")" != "$(cat "$pyexe")" ]
+        then
+            echo "Found old wrapper, will be replaced"
+            copy=1
+        fi        
     fi
 
-    #
-    # copy even when it already exists (update) 
-    #
-    umask 003
-    cp "${BASH_SOURCE[0]}" "$pyexe"    
+    if [ -n "$copy" ]
+    then
+        umask 003
+        cp "$src" "$pyexe"
+    fi    
 
     if [ ! -x "$pyexe" ]
     then
