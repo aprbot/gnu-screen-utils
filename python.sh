@@ -69,7 +69,7 @@ fi
 
 set -e
 
-outfile="$(date +"${PYTHON_WRAPPER_OUT_FILE:?output file must be specified}")"
+outfile="$(date +"${PYTHON_WRAPPER_OUT_FILE}")"
 errfile="$(date +"${PYTHON_WRAPPER_ERR_FILE}")"
 
 outfiles=( "$outfile" )
