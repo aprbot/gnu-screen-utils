@@ -8,8 +8,8 @@
 #   2) specify next environment variables:
 #       * PYTHON_WRAPPER_OUT_FILE: path to out file (date patterns are allowed)
 #       * PYTHON_WRAPPER_ERR_FILE='': path to err file (date patterns are allowed); if not set, errors will be printed only to PYTHON_WRAPPER_OUT_FILE
-#       * PYTHON_WRAPPER_USE_STDOUT=1: 1 means to print usual messages to /dev/stdout too
-#       * PYTHON_WRAPPER_USE_STDERR=1: 1 means to print error messages to /dev/stderr; otherwise will not be printed
+#       * PYTHON_WRAPPER_USE_STDOUT=0: 1 means to print usual messages to /dev/stdout too
+#       * PYTHON_WRAPPER_USE_STDERR=0: 1 means to print error messages to /dev/stderr; otherwise will not be printed
 #       * also there are supplement variables PYTHON_WRAPPER_SUPPLEMENT_OUT_FILE_{1..9}, PYTHON_WRAPPER_SUPPLEMENT_ERR_FILE_{1..9}
 #       *
 #   3) execute venv/bin/python as always
@@ -131,11 +131,11 @@ function _log {
     then
         files+=("${errfiles[@]}")
 
-        if [ "${PYTHON_WRAPPER_USE_STDERR:-1}" == "1" ]
+        if [ "${PYTHON_WRAPPER_USE_STDERR:-0}" == "1" ]
         then
             echo "$record" > /dev/stderr
         fi
-    elif [ "${PYTHON_WRAPPER_USE_STDOUT:-1}" == "1" ]
+    elif [ "${PYTHON_WRAPPER_USE_STDOUT:-0}" == "1" ]
     then
         echo "$record"      
     fi
