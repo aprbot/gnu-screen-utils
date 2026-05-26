@@ -1092,7 +1092,8 @@ function _make-err-log {
 
 function _make_decorator {
 
-    local rc rnd="$RANDOM" usr rndfile
+    local rc rnd="$(( RANDOM % 2000 + 1))" usr rndfile
+    rnd="$(printf '%0*d' 4 $rnd)"
 
     if [ "${MAKE_LOG_USER}" == "1" ]
     then
@@ -1125,7 +1126,7 @@ function _make_decorator {
             return 1
         fi
 
-        echo -e "###########\n#\n# targets: $*\n#\n# date: $(date +"%Y-%m-%d-%H-%M-%S")\n#\n###########\n\n" > "$rndfile"
+        echo -e "###########\n#\n# targets: $*\n#\n# date: $(date +"%Y-%m-%d %H:%M:%S")\n#\n###########\n\n" > "$rndfile"
         /usr/bin/make "$@" |& tee -a "$rndfile"
         rc="${PIPESTATUS[0]}"
         echo -e "\n\n# EXIT CODE: $rc" >> "$rndfile"
