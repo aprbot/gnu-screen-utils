@@ -944,19 +944,42 @@ function _fix_env {
     done 
 }
 
+function _quote_arg {
+    if [ -z "$1" ]
+    then
+        echo " ''"
+        return 0
+    fi
+    if [[ "$1" != *[[:space:]\'\"]* ]]
+    then
+        # without space some values (like -e) will not be printed
+        echo " $1"
+        return 0
+    fi
+    if [[ $1 == \"*\" ]] || [[ $1 == \'*\' ]]
+    then
+        echo " $1"
+    else
+        echo " \"$(echo "$1" | sed 's/"/\\"/g')\""
+    fi
+}
 
 function _get_screen_name_from_args {
     #
     # searches for screen name in input screen args
     #
-    local found name msg
+    local found name msg a
 
     for arg in $@
     do 
         if [ -n "$found" ]
         then
             name="$arg"
-            msg="...on starting screen $name by: screen $*"
+            msg="...on starting screen $name by: screen"
+            for a in "$@"
+            do
+                msg="$msg$(_quote_arg "$a")"
+            done
             [ -n "SDLOG" ] && echo "$msg"
             screen-log "$name" "$msg"
 
