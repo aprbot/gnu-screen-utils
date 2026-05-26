@@ -163,7 +163,7 @@ function _err-log {
 
 set +e
 
-function _quote_if_needed {
+function _quote_arg {
     if [ -z "$1" ]
     then
         echo " ''"
@@ -186,7 +186,7 @@ function _quote_if_needed {
 m="executing: $0"
 for a in "$@"
 do
-    m="$m$(_quote_if_needed "$a")"
+    m="$m$(_quote_arg "$a")"
 done
 _log "$m"
 
