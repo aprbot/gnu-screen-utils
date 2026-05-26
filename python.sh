@@ -163,7 +163,32 @@ function _err-log {
 
 set +e
 
-_log "executing: $0 $*"
+function _quote_if_needed {
+    if [ -z "$1" ]
+    then
+        echo " ''"
+        return 0
+    fi
+    if [[ "$1" != *[[:space:]\'\"]* ]]
+    then
+        # without space some values (like -e) will not be printed
+        echo " $1"
+        return 0
+    fi
+    if [[ $1 == \"*\" ]] || [[ $1 == \'*\' ]]
+    then
+        echo " $1"
+    else
+        echo " \"$(echo "$1" | sed 's/"/\\"/g')\""
+    fi
+}
+
+m="executing: $0"
+for a in "$@"
+do
+    m="$m$(_quote_if_needed "$a")"
+done
+_log "$m"
 
 "$pyexe" "$@"
 rc=$?
