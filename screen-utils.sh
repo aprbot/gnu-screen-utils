@@ -11,7 +11,7 @@ set -a
 #
 # sets ulimits for the process cuz big ulimits can slow down screen commands
 #
-if [ $(ulimit -Sn) -ge 1000000 ]
+if [ "$(ulimit -Sn)" -ge 1000000 ]
 then
     ulimit -Sn 100000
     ulimit -Hn 500000
@@ -25,10 +25,10 @@ function err-echo {
 
 function get-child-pids {
     local cpid
-    for cpid in $(pgrep -P $1 | xargs);
+    for cpid in $(pgrep -P "$1" | xargs);
     do
         echo "$cpid"
-        get-child-pids $cpid
+        get-child-pids "$cpid"
     done
 }
 
@@ -40,7 +40,7 @@ function get-pids-of {
     fi    
 
     echo "$1"
-    get-child-pids $1
+    get-child-pids "$1"
 }
 
 function htop-proc-tree {
@@ -78,22 +78,21 @@ function export-proc-env {
     then
         file=/dev/stdout
     else
-        mkdir -p "$(dirname $2)"
+        mkdir -p "$(dirname "$2")"
     fi
 
     #
     #   - functions definitions changes
     #   - add quotes to x=some;other --> x='some;other'
     #
-    cat /proc/$1/environ | \
-        tr '\0' '\n' | \
+    tr '\0' '\n' < "/proc/$1/environ" | \
         sed -E 's@BASH_FUNC_(.*)%%=\(\)@\1()@g' | \
         sed -E "s@^(\S+)=(((.*[^'](;|\s)).+)+)@\1='\2'@g" \
             > "$file"
 }
 
 function get-proc-args {
-    ps -p $1 --no-headers -o args
+    ps -p "$1" --no-headers -o args
 }
 
 #endregion
@@ -113,7 +112,7 @@ function get-screen-cmd {
     if [ -d "/proc/$1" ]  # PID case
     then
         lines="$(
-            cat /proc/$1/cmdline | tr '\0' '\n' | \
+            tr '\0' '\n' < "/proc/$1/cmdline" | \
                 sed -e 's|SCREEN|screen|g' -e 's|/usr/bin/screen|screen|g'
         )"
 
@@ -126,38 +125,40 @@ function get-screen-cmd {
             )"
         fi
     else
-        lines="$(cat "$1" | tr '\0' '\n')"
+        lines="$(tr '\0' '\n' < "$1")"
     fi
 
-    local IFS=$'\n'
-
-    for arg in $lines
-    do
-        if [ -n "$n" ]  # whether to replace name
-        then
-            if [ $nstatus -eq 0 ]  # if name arg not found already
+    # newline-separated argv; empty $lines means no arguments (here-string would add one)
+    if [ -n "$lines" ]
+    then
+        while IFS= read -r arg || [ -n "$arg" ]
+        do
+            if [ -n "$n" ]  # whether to replace name
             then
-                if [[ "$arg" =~ ^-.*S ]]
+                if [ "$nstatus" -eq 0 ]  # if name arg not found already
                 then
-                    nstatus=1
-                fi
-            elif [ $nstatus -eq 1 ]  # if current arg is name
-            then
-                name="$arg"
-                if [[ $n =~ ^_.* ]]
+                    if [[ "$arg" =~ ^-.*S ]]
+                    then
+                        nstatus=1
+                    fi
+                elif [ "$nstatus" -eq 1 ]  # if current arg is name
                 then
-                    name="$name$n"
-                else
-                    name="$n"
-                fi
-                arg="$name"
+                    name="$arg"
+                    if [[ "$n" =~ ^_.* ]]
+                    then
+                        name="$name$n"
+                    else
+                        name="$n"
+                    fi
+                    arg="$name"
 
-                nstatus=2
+                    nstatus=2
+                fi
             fi
-        fi
 
-        args+=("$arg")
-    done
+            args+=("$arg")
+        done <<< "$lines"
+    fi
     
     if [ -n "$outfile" ]
     then
@@ -316,7 +317,7 @@ function get-screen-tree-pids() {
     local pid p=""
     for pid in $(screen-select --all | cut -d'.' -f1)
     do
-        p="$p $(get-pids-of $pid | xargs)"
+        p="$p $(get-pids-of "$pid" | xargs)"
     done
     echo "$p" | xargs
 }
@@ -332,17 +333,17 @@ function screen-top() {
 }
 
 function dump_screen_output {
-    local name=$1
+    local name="$1"
     if [ -z "$name" ]
     then 
         echo "dumps screen output to file"
         echo "usage: dump_screen_output <screen ID/NAME/ID.NAME> <file>"
         return 0
     fi
-    local file=${2:-/tmp/screen_output}
+    local file="${2:-/tmp/screen_output}"
 
     mkdir -p "$(dirname "$file")"
-    if /usr/bin/screen -X -S "$name" hardcopy -h $file
+    if /usr/bin/screen -X -S "$name" hardcopy -h "$file"
     then
         echo "screen $name log is dumped to $file"
     else
@@ -384,7 +385,7 @@ function screen-ls {
 
         echo "$ident =>"
         echo -e -n "\t" 
-        echo "$(get-screen-cmd $pid)"
+        echo "$(get-screen-cmd "$pid")"
         echo
     done
 }
@@ -415,7 +416,7 @@ function screen-counts {
         fi
     done
 
-    for name in ${!n2count[@]}
+    for name in "${!n2count[@]}"
     do
         echo -e "\t$name=${n2count["$name"]}, ${n2pids["$name"]}"
     done
@@ -443,7 +444,7 @@ function screen-env-show {
     then
         local name="$(_get_screen "$1")"
         local pid="${name%.*}"
-        export-proc-env $pid
+        export-proc-env "$pid"
     else
         echo "No such unique screen: $1" 1>&2
         /usr/bin/screen -ls
@@ -468,9 +469,9 @@ function _screen_save {
 
     mkdir -p "$dir"
 
-    export-proc-env $pid "$dir/env"
-    get-screen-cmd $pid '' "$dir/cmd"
-    readlink /proc/$pid/cwd > "$dir/cwd"
+    export-proc-env "$pid" "$dir/env"
+    get-screen-cmd "$pid" '' "$dir/cmd"
+    readlink "/proc/$pid/cwd" > "$dir/cwd"
 }
 
 function _screen_save_clear {
@@ -565,7 +566,7 @@ function _screen_load {
 
         cd "$cwd"
         set -o allexport
-        source $envfile
+        source "$envfile"
         set +o allexport
 
         if [ -n "$curenv" ]
@@ -634,14 +635,14 @@ function screen-kill {
     _screen_select_title="kills screens (with all child processes)"
     _screen_select_action=kill
     local out ident
-    out="$(screen-select $@)"
+    out="$(screen-select "$@")"
     local rc=$?
     unset _screen_select_cmd _screen_select_title _screen_select_action
     
-    if [ $rc -ne 0 ] || (echo "$out" | grep 'usage:' &> /dev/null)
+    if [ "$rc" -ne 0 ] || (echo "$out" | grep 'usage:' &> /dev/null)
     then 
         echo "$out"
-        return $rc
+        return "$rc"
     fi
 
     rc=0
@@ -658,7 +659,7 @@ function screen-kill {
         fi
     done
 
-    return $rc
+    return "$rc"
 }
 
 function screen-stop {
@@ -717,14 +718,14 @@ function screen-restart {
     _screen_select_title="restarts screens"
     _screen_select_action=restart
     local out ident
-    out="$(screen-select $@)"
+    out="$(screen-select "$@")"
     local rc=$?
     unset _screen_select_cmd _screen_select_title _screen_select_action
     
-    if [ $rc -ne 0 ] || (echo "$out" | grep 'usage:' &> /dev/null)
+    if [ "$rc" -ne 0 ] || (echo "$out" | grep 'usage:' &> /dev/null)
     then 
         echo "$out"
-        return $rc
+        return "$rc"
     fi
 
     # for ident in $(echo "$out" | xargs)
@@ -778,7 +779,7 @@ function screen-restart {
         _screen_save_clear "$file"
     done
 
-    return $rc
+    return "$rc"
 }
 
 function screen-copy {
@@ -817,7 +818,7 @@ function screen-utils-help {
     for ff in "screen-select" "get-screen-tree-pids" "screen-top" "dump_screen_output" "dump_screens_output" "screen-ls" "screen-env-show" "screen-counts" "screen-dump" "screen-load" "screen-kill" "screen-stop" "screen-restart" "screen-copy"
     do
         echo "==== $ff ===="
-        $ff ''
+        "$ff" ''
         echo
     done
 
@@ -920,15 +921,15 @@ function _fix_env {
     #   and changes current environment
     #
 
-    local name="$1" prefix="$(echo $1 | tr '-' '_')" msg
+    local name="$1" prefix="$(echo "$1" | tr '-' '_')" msg
 
     [ -n "$name" ] || return 0
 
     msg="fixing env for screen $name ($prefix)" 
-    [ -n "SDLOG" ] && echo "$msg"
+    [ "${SDLOG:-}" = "1" ] && echo "$msg"
     screen-log "$name" "$msg"
 
-    for record in $(env | grep -E "^[^=]*$prefix.*=")
+    while IFS= read -r record
     do
         local n="${record%%=*}"
         local v="${record#*=}"
@@ -936,12 +937,12 @@ function _fix_env {
         local s="${n/$prefix}"
 
         msg="rename to $s : $n=$v"
-        [ -n "SDLOG" ] && echo "$msg"
+        [ "${SDLOG:-}" = "1" ] && echo "$msg"
         screen-log "$name" "$msg"
 
-        unset $n
-        export $s=$v
-    done 
+        unset "$n"
+        export "$s=$v"
+    done < <(env | grep -E "^[^=]*${prefix}.*=" || true)
 }
 
 function _quote_arg {
@@ -956,7 +957,7 @@ function _quote_arg {
         echo " $1"
         return 0
     fi
-    if [[ $1 == \"*\" ]] || [[ $1 == \'*\' ]]
+    if [[ "$1" == \"*\" ]] || [[ "$1" == \'*\' ]]
     then
         echo " $1"
     else
@@ -968,9 +969,9 @@ function _get_screen_name_from_args {
     #
     # searches for screen name in input screen args
     #
-    local found name msg a
+    local found name msg a arg
 
-    for arg in $@
+    for arg in "$@"
     do 
         if [ -n "$found" ]
         then
@@ -980,7 +981,7 @@ function _get_screen_name_from_args {
             do
                 msg="$msg$(_quote_arg "$a")"
             done
-            [ -n "SDLOG" ] && echo "$msg"
+            [ "${SDLOG:-}" = "1" ] && echo "$msg"
             screen-log "$name" "$msg"
 
             export _ARG_SCREEN="$name"
@@ -1019,12 +1020,12 @@ function _screen_decorator {
             local rc=$?
             local msg="sleep: prev command exited with code $rc, sleep for $1"
             screen-log "${_ARG_SCREEN}" "$msg"
-            if [ $rc -ne 0 ]
+            if [ "$rc" -ne 0 ]
             then
-                screen-err-log "${_ARG_SCREEN}" "$(ps -p $$ --no-headers -o args)"
+                screen-err-log "${_ARG_SCREEN}" "$(ps -p "$$" --no-headers -o args)"
                 screen-err-log "${_ARG_SCREEN}" "$msg"
             fi
-            /usr/bin/sleep $1
+            /usr/bin/sleep "$1"
         }
         export -f sleep
         /usr/bin/screen "$@" 
@@ -1067,7 +1068,7 @@ function _make-log {
 
     if [ $# -lt 1 ] || [ $# -gt 2 ]
     then
-        echo "requires >=1,<=2 arguments, got $# ($@)!" &>/dev/stderr
+        echo "requires >=1,<=2 arguments, got $# ($*)!" &>/dev/stderr
         _make-log
         return 1
     fi
@@ -1116,7 +1117,7 @@ function _make-err-log {
 function _make_decorator {
 
     local rc rnd="$(( RANDOM % 2000 + 1))" usr rndfile
-    rnd="$(printf '%0*d' 4 $rnd)"
+    rnd="$(printf '%0*d' 4 "$rnd")"
 
     if [ "${MAKE_LOG_USER}" == "1" ]
     then
@@ -1157,13 +1158,13 @@ function _make_decorator {
 
     # unset PYTHON_WRAPPER_SUPPLEMENT_OUT_FILE_9 PYTHON_WRAPPER_SUPPLEMENT_ERR_FILE_9
 
-    if [ $rc -ne 0 ]
+    if [ "$rc" -ne 0 ]
     then
         _make-err-log "*$rnd* targets ( $* ) execution is done with code: $rc"
     fi
     _make-log "*$rnd* exit code: $rc"
 
-    return $rc
+    return "$rc"
 }
 
 if [ -e /usr/bin/make ] 
