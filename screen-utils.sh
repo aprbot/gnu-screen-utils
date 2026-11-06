@@ -359,14 +359,14 @@ function dump_screens_output {
         return 0
     fi
 
-    local folder=${1:-/tmp/screen_output.d}
+    local folder="${1:-/tmp/screen_output.d}"
     local ident
     for ident in $(_get_screens)
     do 
-        local number=${ident%.*}
-        local name=${ident#*.}
+        local number="${ident%.*}"
+        local name="${ident#*.}"
 
-        dump_screen_output $ident "$folder/$name.$number.txt"
+        dump_screen_output "$ident" "$folder/$name.$number.txt"
     done
 }
 
@@ -380,7 +380,7 @@ function screen-ls {
 
     for ident in $(_get_screens)
     do 
-        local pid=${ident%.*}
+        local pid="${ident%.*}"
 
         echo "$ident =>"
         echo -e -n "\t" 
@@ -401,8 +401,8 @@ function screen-counts {
     declare -A n2count
     for ident in $(_get_screens)
     do 
-        local number=${ident%.*}
-        local name=${ident#*.}
+        local number="${ident%.*}"
+        local name="${ident#*.}"
         
         local count="${n2count["$name"]}"
         if [ -z "$count" ]
